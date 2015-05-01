@@ -22,6 +22,10 @@ struct CONF * defaultconf(){
   c->otablename = "t";
   c->isopen = 0;
   c->ncores = (int) sysconf(_SC_NPROCESSORS_ONLN);
+  if ((c->ncores<=0) || (c->ncores>255)){
+    fprintf(stderr,"Fatal error: sysconf returned invalid number of cores = %d , expected a number between 1 and 255 \n", c->ncores);
+    exit(EXIT_FAILURE);
+  }
   c->shardc = 0;
   c->shardv = NULL;
   return c;
@@ -38,7 +42,6 @@ int opendb(struct CONF * conf, const char *dbdir){
     exit(EXIT_FAILURE);
   }
   char *glob = xcat(dbdir,"/[0-9]*");
-  printf("%s\n",glob);
   wordexp_t p;
   int flags = WRDE_NOCMD; // do not run commands in shells like "$(evil)"
   int x = wordexp(glob, &p, flags);
@@ -53,7 +56,7 @@ int opendb(struct CONF * conf, const char *dbdir){
 	) conf->isopen=1;
   }
   free(glob);
-  return x;
+  return (conf->isopen)? 0: -1;
 }
 
 
@@ -177,10 +180,10 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
     ;
 
   const char *qData =
-    "%s ; \n";
+    "%s\n";
   
   const char *qSchema =
-    "create temporary table %s as %s ; \n"
+    "create temporary table %s as %s\n"
     ".schema %s \n"
     "select * from %s; \n";
   
@@ -192,7 +195,7 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
   
   for(i=0;i<shardc;++i){
     if (shardv[i]){
-      fprintf(qcfile, ".open %s \n", shardv[i]);
+      fprintf(qcfile, ".open %s\n", shardv[i]);
       fLoadExtensions(conf, qcfile);
       if ((getschema) && (i==0)){
 	fprintf(qcfile,
@@ -213,15 +216,15 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
   
 }
 
-int getshardc(int i, int n, int c){
+int getcoreshardc(int i, int n, int c){
   int each = c/n;
   int extras = (i<(c%n))? 1: 0;
   return each+extras;
 }
 
-const char** getshardv(int i, int n, int c, const char ** v){
+const char** getcoreshardv(int i, int n, int c, const char ** v){
   char *x=NULL;
-  int shardc = getshardc(i,n,c);
+  int shardc = getcoreshardc(i,n,c);
   const char **result = xmalloc(shardc*sizeof(x));
   int idx;
   for(idx=0; (idx*n+i)<c; ++idx){
@@ -229,9 +232,6 @@ const char** getshardv(int i, int n, int c, const char ** v){
   }
   return result;
 }
-
-
-
 
 int query(struct CONF *conf,
 	  const char *mapsql,
@@ -253,12 +253,16 @@ int query(struct CONF *conf,
   char reducefname[bufsize];
   FILE *reducef;
 
+  char resultfname[bufsize];
+  snprintf(resultfname, bufsize, "%s/result", tmpdir);
+  FILE *resultf;
+
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
     reducef = xfopen(reducefname, "w");
     fLoadExtensions(conf, reducef);
     if (createtablesql)
-      fprintf(reducef, "%s ;\n", createtablesql);
+      fprintf(reducef, "%s\n", createtablesql);
   }
   
   for(icore=0;icore<(conf->ncores);++icore){
@@ -268,8 +272,8 @@ int query(struct CONF *conf,
     if (reducesql)
       fprintf(reducef, ".read %s \n", resultname);
     int getschema = (icore==0) && (createtablesql==NULL);
-    int shardc = getshardc(icore, conf->ncores, conf->shardc);
-    const char **shardv = getshardv(icore, conf->ncores, conf->shardc, conf->shardv);
+    int shardc = getcoreshardc(icore, conf->ncores, conf->shardc);
+    const char **shardv = getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
     makeQueryCoreFile(conf, fname, getschema, shardc, shardv, mapsql);
     errno = 0;
     char * const argv[] = {"sqlite3", (char * const) NULL};
@@ -282,11 +286,14 @@ int query(struct CONF *conf,
     waitpid(worker[icore],&status,0);
   
   if (reducesql){
-    fprintf(reducef, "%s ;\n", reducesql);
+    fprintf(reducef, "%s\n", reducesql);
     fclose(reducef);
     char * const argv[] = {"sqlite3", (char *const) NULL};
-    int reducer = xrun(conf->bin, argv, reducefname, NULL);
+    int reducer = xrun(conf->bin, argv, reducefname, resultfname);
+    char *cmd = xcat("cat ",resultfname);
     waitpid(reducer, &status, 0);
+    system(cmd);
+    free(cmd);
   }
 
   return 0;
