@@ -118,6 +118,7 @@ int xrmtmp(const char *dirname){
 }
 
 pid_t xrun(const char *bin, char * const* argv, const char *infile, const char *outfile){
+  errno=0;
   pid_t pid = fork();
   if (pid>0) return pid;
   if (pid==0){
@@ -171,41 +172,27 @@ int fLoadExtensions(struct CONF *conf, FILE *f){
   return errno;
 }
 
-int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
+int makeQueryCoreFile(struct CONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 
-  const char *qTemplate =
-    ".mode insert %s\n" // output table name
-    ;
-
-  const char *qData =
-    "%s\n";
-  
-  const char *qSchema =
-    "create temporary table %s as %s\n"
-    ".schema %s \n"
-    "select * from %s; \n";
-  
   FILE * qcfile = xfopen(fname,"w");
 
-  fprintf(qcfile,
-	  qTemplate,
-	  conf->otablename);
-  
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       fprintf(qcfile, ".open %s\n", shardv[i]);
       fLoadExtensions(conf, qcfile);
-      if ((getschema) && (i==0)){
+      fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
+      if (i==0){
 	fprintf(qcfile,
-		qSchema,
+		"create table resultdb.%s as %s\n",
 		conf->otablename,
-		mapsql,
-		conf->otablename,
-		conf->otablename);	
+		mapsql);	
       } else {
-	fprintf(qcfile,qData,mapsql);
+	fprintf(qcfile,
+		"insert into resultdb.%s %s\n",
+		conf->otablename,
+		mapsql);
       }
     }
   }
@@ -246,9 +233,10 @@ int query(struct CONF *conf,
   
   pid_t worker[conf->ncores];
 
+  errno=0;
   char tmpdirt[] = "/tmp/mcoreXXXXXX";
   char *tmpdir = mkdtemp(tmpdirt);
-  abortOnError("Fatal: unable to create temporary work directory");
+  abortOnError(xcat("Fatal: unable to create temporary work directory ", tmpdir));
 
   char reducefname[bufsize];
   FILE *reducef;
@@ -260,21 +248,22 @@ int query(struct CONF *conf,
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
     reducef = xfopen(reducefname, "w");
+    fprintf(reducef, ".open %s/coredb.000\n", tmpdir);
     fLoadExtensions(conf, reducef);
-    if (createtablesql)
-      fprintf(reducef, "%s\n", createtablesql);
   }
   
   for(icore=0;icore<(conf->ncores);++icore){
-    char fname[bufsize], resultname[bufsize];
+    char fname[bufsize], resultname[bufsize], coredbname[bufsize];
     snprintf(fname, bufsize, "%s/query.sqlite.core.%.3d", tmpdir, icore);
-    snprintf(resultname,bufsize,"%s/results.core.%.3d",tmpdir,icore);
-    if (reducesql)
-      fprintf(reducef, ".read %s \n", resultname);
-    int getschema = (icore==0) && (createtablesql==NULL);
+    snprintf(resultname, bufsize, "%s/results.core.%.3d", tmpdir, icore);
+    snprintf(coredbname,bufsize,"%s/coredb.%.3d",tmpdir,icore);
+    if ((reducef) && (icore>0)){
+      fprintf(reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname, icore);
+      fprintf(reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
+    }
     int shardc = getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
-    makeQueryCoreFile(conf, fname, getschema, shardc, shardv, mapsql);
+    makeQueryCoreFile(conf, fname, coredbname, shardc, shardv, mapsql);
     errno = 0;
     char * const argv[] = {"sqlite3", (char * const) NULL};
     worker[icore] = xrun(conf->bin,argv,fname,resultname);

@@ -66,7 +66,8 @@ int main(int argc, char **argv){
     if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
   }
 
-  opendb(conf, dbname);
-  return query(conf, mapsql, NULL, reducesql);
-
+  if (opendb(conf, dbname)==0)
+    return query(conf, mapsql, NULL, reducesql);
+  else
+    fprintf(stderr, "error opening database %s \n",dbname);
 }
