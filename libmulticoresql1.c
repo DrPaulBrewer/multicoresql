@@ -1,15 +1,5 @@
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <wordexp.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include "libmulticoresql.h"
+#include "libmulticoreutils.h"
+#include "libmulticoresql1.h"
 
 struct CONF * defaultconf(){
   typedef struct CONF conftype;
@@ -61,103 +51,6 @@ int opendb(struct CONF * conf, const char *dbdir){
 
 
 
-void * xmalloc(size_t size){
-  void * p = malloc(size);
-  if (p==NULL){
-    fprintf(stderr,"%s\n","Fatal error: out of memory\n");
-    exit(1);
-  }
-  return p;
-}
-
-char * xcat(const char *s1, const char *s2){
-  char * s = xmalloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
-  sprintf(s,"%s%s",s1,s2);
-  return s;
-}
-
-char * xdup(const char *s){
-  errno = 0;
-  char *x = strdup(s);
-  if ((x==NULL) || (errno!=0)){
-    perror("out of memory");
-    exit(1);
-  }
-  return x;
-}
-
-void abortOnError(const char *msg){
-  if (errno!=0){
-    perror(msg);
-    exit(1);
-  } 
-}
-
-FILE* xfopen(const char *fname, const char *mode){
-  errno = 0;
-  FILE *f = fopen(fname, mode);
-  abortOnError(xcat("Fatal error on opening file ",fname));
-  return f;
-}
-
-int xrmtmp(const char *dirname){
-  if ((dirname) && (dirname==strstr(dirname, "/tmp/")))
-    {
-      char *fmt = "rm -rf %s";
-      int len = snprintf(NULL, 0, fmt, dirname);
-      char *cmd = xmalloc(len);
-      sprintf(cmd, fmt, dirname);
-      errno = 0;
-      system(cmd);
-      abortOnError(xcat("Fatal error removing directory ",dirname));
-      free(cmd);
-      return 0;
-    }
-  fprintf(stderr, "warning: attempt to rm -rf %s; not executed", dirname);
-  return -1;
-}
-
-pid_t xrun(const char *bin, char * const* argv, const char *infile, const char *outfile){
-  errno=0;
-  pid_t pid = fork();
-  if (pid>0) return pid;
-  if (pid==0){
-    errno = 0;
-    int rd, wd;
-    if (infile) {
-      rd = open(infile, O_RDONLY);
-      if (errno!=0){
-	perror(xcat("Fatal: xrun could not open input file ",infile));
-	exit(EXIT_FAILURE);
-      }
-      dup2(rd,0);
-      if (errno!=0){
-	perror("Fatal: xrun could not set input file with dup2 ");
-	exit(EXIT_FAILURE);
-      }
-    }
-    if (outfile){
-      wd = open(outfile, O_WRONLY | O_CREAT, 0700);
-      if (errno!=0){
-	perror(xcat("Fatal: xrun could not open output file ",outfile));
-	exit(EXIT_FAILURE);
-      }
-      dup2(wd,1);
-      if (errno!=0){
-	perror("Fatal: xrun could not set output file with dup2 ");
-	exit(EXIT_FAILURE);
-      }
-    }
-    int err = execvp(bin, argv);
-    if ((err!=0) || (errno!=0)){
-      perror("Fatal: execvp failed ");
-      exit(EXIT_FAILURE);
-    }
-  } 
-  perror("Fatal: failed to fork and run command ");
-  exit(EXIT_FAILURE);
-}
-
 int fLoadExtensions(struct CONF *conf, FILE *f){
   if ( (conf->extensions) && (strlen(conf->extensions)>0) ){
     char *ext = xdup(conf->extensions);
@@ -176,22 +69,34 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, const char *coredbn
 
   int i;
 
+  if ( (conf==NULL) || (fname==NULL) || (shardc==0) || (shardv==NULL) || (mapsql==NULL) || strlen(mapsql)==0 )
+    return -1;
+
   FILE * qcfile = xfopen(fname,"w");
+
+  int is_select = ( (mapsql[0]=='s') || (mapsql[0]=='S') );
 
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       fprintf(qcfile, ".open %s\n", shardv[i]);
       fLoadExtensions(conf, qcfile);
-      fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
-      if (i==0){
-	fprintf(qcfile,
-		"create table resultdb.%s as %s\n",
-		conf->otablename,
-		mapsql);	
+      if (is_select){
+	fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
+	if (i==0){
+	  fprintf(qcfile,
+		  "create table resultdb.%s as %s\n",
+		  conf->otablename,
+		  mapsql);	
+	} else {
+	  fprintf(qcfile,
+		  "insert into resultdb.%s %s\n",
+		  conf->otablename,
+		  mapsql);
+	}
       } else {
+	/* mapsql is not a select statment */
 	fprintf(qcfile,
-		"insert into resultdb.%s %s\n",
-		conf->otablename,
+		"%s\n",
 		mapsql);
       }
     }
@@ -201,23 +106,6 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, const char *coredbn
   
   return 0;
   
-}
-
-int getcoreshardc(int i, int n, int c){
-  int each = c/n;
-  int extras = (i<(c%n))? 1: 0;
-  return each+extras;
-}
-
-const char** getcoreshardv(int i, int n, int c, const char ** v){
-  char *x=NULL;
-  int shardc = getcoreshardc(i,n,c);
-  const char **result = xmalloc(shardc*sizeof(x));
-  int idx;
-  for(idx=0; (idx*n+i)<c; ++idx){
-    result[idx] = v[(idx*n+i)];
-  }
-  return result;
 }
 
 int query(struct CONF *conf,
@@ -260,6 +148,7 @@ int query(struct CONF *conf,
     if ((reducef) && (icore>0)){
       fprintf(reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname, icore);
       fprintf(reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
+      fprintf(reducef, "detach database 'coredb%.3d';\n", icore);
     }
     int shardc = getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
