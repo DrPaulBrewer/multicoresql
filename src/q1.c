@@ -13,7 +13,7 @@ int main(int argc, char **argv){
   char *reducesql = NULL; /* -r */
   int verbose = 0; /* -v */
 
-  struct CONF *conf = defaultconf();
+  struct mu_CONF *conf = mu_defaultconf();
 
   const char *getopt_options = "c:d:t:m:r:v";
   int c;
@@ -66,8 +66,8 @@ int main(int argc, char **argv){
     if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
   }
 
-  if (opendb(conf, dbname)==0)
-    return query(conf, mapsql, NULL, reducesql);
+  if (mu_opendb(conf, dbname)==0)
+    return mu_query(conf, mapsql, NULL, reducesql);
   else
     fprintf(stderr, "error opening database %s \n",dbname);
 }

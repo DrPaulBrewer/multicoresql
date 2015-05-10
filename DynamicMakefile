@@ -1,0 +1,19 @@
+CC=gcc
+CFLAGS=-I. -fPIC
+DEPS = libmulticoresql0.h libmulticoresql1.h libmulticoreutils.h
+OBJ = libmulticoresql0.o libmulticoresql1.o libmulticoreutils.o q0.o q1.o
+
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+q0: q0.c libmulticoresql0.c libmulticoreutils.c
+	gcc -o $@ $^ $(CFLAGS)
+
+q1: q1.c libmulticoresql1.c libmulticoreutils.c
+	gcc -o $@ $^ $(CFLAGS)
+
+libmulticoresql0.so.1: libmulticoresql0.o libmulticoreutils.o
+	gcc -shared -Wl,-soname,libmulticoresql0.so.1 \
+	    -o libmulticoresql0.so.1 libmulticoresql0.o libmulticoreutils.o -lc
+
+

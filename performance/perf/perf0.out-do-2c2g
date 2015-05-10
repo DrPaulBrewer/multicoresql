@@ -1,0 +1,330 @@
+q0
+trial 1
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m51.232s
+user	0m23.324s
+sys	0m38.212s
+q0
+trial 2
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m54.479s
+user	0m24.496s
+sys	0m39.996s
+q0
+trial 3
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m53.214s
+user	0m23.600s
+sys	0m39.880s
+q0
+trial 4
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m55.177s
+user	0m23.872s
+sys	0m40.764s
+q0
+trial 5
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m55.091s
+user	0m24.280s
+sys	0m40.344s
+q0
+trial 6
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m54.338s
+user	0m25.188s
+sys	0m41.396s
+q0
+trial 7
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m55.541s
+user	0m25.188s
+sys	0m41.668s
+q0
+trial 8
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m55.549s
+user	0m24.508s
+sys	0m40.808s
+q0
+trial 9
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m55.333s
+user	0m24.048s
+sys	0m41.092s
+q0
+trial 10
+35620|424285
+0|406078
+31080|357063
+33100|303540
+16980|289606
+40140|213027
+12060|184404
+47900|176161
+38060|158974
+37980|122986
+41860|120868
+19820|117476
+29820|102221
+36740|99744
+45300|95527
+26420|93860
+19100|93751
+41740|92994
+14460|87590
+42660|83919
+x3 
+number of cores (-c): 3
+dbname              : ./test 
+mapsql:
+select prop_geoc_cnsus_msa_cd as msa, count(*) as n from mods group by prop_geoc_cnsus_msa_cd;
+reducesql:
+select msa, sum(n) as n from t group by msa order by n desc limit 20;
+
+real	0m54.168s
+user	0m23.848s
+sys	0m39.896s

@@ -11,12 +11,10 @@
 #include "libmulticoreutils.h"
 #include "libmulticoresql0.h"
 
-struct CONF * defaultconf(){
-  typedef struct CONF conftype;
-  struct CONF * c = xmalloc(sizeof(conftype));
-  c->bin = getenv("MULTICORE_SQLITE3_BIN");
-  if (c->bin==NULL)
-    c->bin = "sqlite3";
+struct mu_CONF * mu_defaultconf(){
+  typedef struct mu_CONF mu_conf_type;
+  struct mu_CONF * c = mu_malloc(sizeof(mu_conf_type));
+  c->bin = mu_sqlite3_bin();
   c->db = NULL;
   c->extensions = getenv("MULTICORE_SQLITE3_EXTENSIONS");
   c->otablename = "t";
@@ -27,17 +25,17 @@ struct CONF * defaultconf(){
   return c;
 }
 
-int opendb(struct CONF * conf, const char *dbdir){
+int mu_opendb(struct mu_CONF * conf, const char *dbdir){
   conf->isopen=0;
   if (conf==NULL){
-    fprintf(stderr,"%s\n","Fatal: opendb received null CONF pointer");
+    fprintf(stderr,"%s\n","Fatal: mu_opendb received null mu_CONF pointer");
     exit(EXIT_FAILURE);
   }
   if (dbdir==NULL){
-    fprintf(stderr,"%s\n","Fatal: opendb received null dbdir pointer");
+    fprintf(stderr,"%s\n","Fatal: mu_opendb received null dbdir pointer");
     exit(EXIT_FAILURE);
   }
-  char *glob = xcat(dbdir,"/*");
+  char *glob = mu_cat(dbdir,"/*");
   wordexp_t p;
   int flags = WRDE_NOCMD; // do not run commands in shells like "$(evil)"
   int x = wordexp(glob, &p, flags);
@@ -55,11 +53,9 @@ int opendb(struct CONF * conf, const char *dbdir){
   return (conf->isopen)? 0: -1;
 }
 
-
-
-int fLoadExtensions(struct CONF *conf, FILE *f){
+int mu_fLoadExtensions(struct mu_CONF *conf, FILE *f){
   if ( (conf->extensions) && (strlen(conf->extensions)>0) ){
-    char *ext = xdup(conf->extensions);
+    char *ext = mu_dup(conf->extensions);
     char *tok = strtok(ext, " ");
     while (tok){
       errno = 0;
@@ -71,7 +67,7 @@ int fLoadExtensions(struct CONF *conf, FILE *f){
   return errno;
 }
 
-int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
+int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 
@@ -87,7 +83,7 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
     ".schema %s \n"
     "select * from %s; \n";
   
-  FILE * qcfile = xfopen(fname,"w");
+  FILE * qcfile = mu_fopen(fname,"w");
 
   fprintf(qcfile,
 	  qTemplate,
@@ -96,7 +92,7 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       fprintf(qcfile, ".open %s\n", shardv[i]);
-      fLoadExtensions(conf, qcfile);
+      mu_fLoadExtensions(conf, qcfile);
       if ((getschema) && (i==0)){
 	fprintf(qcfile,
 		qSchema,
@@ -116,10 +112,10 @@ int makeQueryCoreFile(struct CONF * conf, const char *fname, int getschema, int 
   
 }
 
-int query(struct CONF *conf,
-	  const char *mapsql,
-	  const char *createtablesql,
-	  const char *reducesql)
+int mu_query(struct mu_CONF *conf,
+	     const char *mapsql,
+	     const char *createtablesql,
+	     const char *reducesql)
 {
   int icore;
 
@@ -130,9 +126,8 @@ int query(struct CONF *conf,
   pid_t worker[conf->ncores];
 
   errno = 0;
-  char tmpdirt[] = "/tmp/mcoreXXXXXX";
-  char *tmpdir = mkdtemp(tmpdirt);
-  abortOnError("Fatal: unable to create temporary work directory");
+  const char *tmpdir = mu_create_temp_dir();
+  mu_abortOnError("Fatal: unable to create temporary work directory");
 
   char reducefname[bufsize];
   FILE *reducef;
@@ -143,10 +138,11 @@ int query(struct CONF *conf,
 
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
-    reducef = xfopen(reducefname, "w");
-    fLoadExtensions(conf, reducef);
+    reducef = mu_fopen(reducefname, "w");
+    mu_fLoadExtensions(conf, reducef);
     if (createtablesql)
       fprintf(reducef, "%s\n", createtablesql);
+    fprintf(reducef,"%s\n", "BEGIN TRANSACTION;");
   }
   
   char fname[bufsize], resultname[bufsize];
@@ -161,17 +157,17 @@ int query(struct CONF *conf,
   snprintf(resultname,bufsize,"%s/results.core.%.3d",tmpdir,icore); \
   if (reducesql) \
     fprintf(reducef, ".read %s \n", resultname); \
-  shardc = getcoreshardc(icore, conf->ncores, conf->shardc); \
-  shardv = (const char **) getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv); \
-  makeQueryCoreFile(conf,  \
-		    fname, \
-		    (((icore==0) && (reducesql!=NULL) && (createtablesql==NULL))? 1: 0), \
-		    shardc, \
-		    shardv, \
-		    mapsql); \
-  errno = 0; \
-  worker[icore] = xrun(conf->bin,argv,fname,resultname); \
-  free(shardv); \
+  shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc); \
+  shardv = (const char **) mu_getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv); \
+  mu_makeQueryCoreFile(conf,  \
+		       fname,						\
+		       (((icore==0) && (reducesql!=NULL) && (createtablesql==NULL))? 1: 0), \
+		       shardc,						\
+		       shardv,						\
+		       mapsql);						\
+  errno = 0;								\
+  worker[icore] = mu_run(conf->bin,argv,fname,resultname);		\
+  free(shardv);								\
   
   /* end of macro */
 
@@ -186,11 +182,12 @@ int query(struct CONF *conf,
   waitpid(worker[2], &status, 0);
   
   if (reducesql){
+    fprintf(reducef,"%s\n", "COMMIT;");
     fprintf(reducef, "%s\n", reducesql);
     fclose(reducef);
     char * const argv[] = {"sqlite3", (char *const) NULL};
-    int reducer = xrun(conf->bin, argv, reducefname, resultfname);
-    char *cmd = xcat("cat ",resultfname);
+    int reducer = mu_run(conf->bin, argv, reducefname, resultfname);
+    char *cmd = mu_cat("cat ",resultfname);
     waitpid(reducer, &status, 0);
     system(cmd);
     free(cmd);
@@ -199,4 +196,5 @@ int query(struct CONF *conf,
   return 0;
 
 }
+
 
