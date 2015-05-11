@@ -1,5 +1,7 @@
 CC=gcc
 CFLAGS=-I. -fPIC
+SRCDIR = ./src
+BINDIR = ./bin
 DEPS = libmulticoresql0.h libmulticoresql1.h libmulticoreutils.h
 OBJ = libmulticoresql0.o libmulticoresql1.o libmulticoreutils.o q0.o q1.o
 

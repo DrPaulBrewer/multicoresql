@@ -297,10 +297,58 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   free((void *) getshardnamesin);
   free((void *) getshardnamesout);
   free((void *) dbname2);
-  // mu_remove_temp_dir(tmpdir);
+  mu_remove_temp_dir(tmpdir);
+  free(tmpdir);
   return 0;
 }
 
-int mu_create_shards_from_csv(const char *csvname, const char *schemaname, const char *tablename, const char *dbDir, int shardc){
-  
+unsigned int mu_random_seed(void){
+  int fd = open("/dev/random","r");
+  if (f==NULL)
+    return 4570;
+  unsigned int result = 0;
+  read(fd, (void *) &result, sizeof(result));
+  close(fd);
+  return result;
+}    
+
+int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc){
+  srand(mu_random_seed());
+  const char *tmpdir = mu_create_temp_dir();
+  errno = 0;
+  if (mkdir(dbDir, 0700)){
+    if (errno != EACCES)
+      return -1;
+  }
+  FILE *csvf = mu_fopen(csvname,"r");
+  size_t buf_size=32767;
+  char csvbuf[buf_size];
+  int linenum=0;
+  FILE * csvshards[shardc];
+  int ishard;
+  for(ishard=0;ishard<shardc;++ishard){
+    size_t name_size = 255;
+    char shard_fname[name_size];
+    snprintf(shard_fname, name_size, "%s/%.3d\n", tmpdir, ishard);
+    csvshards[ishard] = mu_fopen(shard_fname,"w");
+  }
+  double dshardc = (double) shardc;
+  while(fgets(csvbuf, buf_size, csvf)){
+    linenum++;
+    if ( linenum > skip ){
+      double rand01 = ((double) rand())/((double) RAND_MAX);
+      int fnum = (int) (dshardc*rand01);
+      if ((fnum<0) || (fnum>=shardc)){
+	fprintf(stderr,"Fatal: mu_create_shards_from_csv() generated random number %d not between 0 and %d \n", fnum, shardc);
+	exit(EXIT_FAILURE);
+      }
+      fputs(csvbuf, csvshards[fnum]);
+    }
+  }
+  fclose(csvbuf);
+  for(ishard=0;ishard<shardc;++ishard){
+    fclose(csvshards[ishard]);
+  }
+  return -1;
 }
+
