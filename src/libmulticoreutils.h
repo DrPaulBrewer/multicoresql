@@ -41,13 +41,15 @@ int exists_mu_temp_done(const char *dirname);
 
 int mu_mark_temp_done(const char *dirname);
 
-char * mu_read_file(const char *fname);
+char * mu_read_small_file(const char *fname);
 
 int ok_mu_shard_name(const char *name);
 
+long int mu_get_long_int_or_die(const char *instring, const char *errfmt);
+
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir);
 
-int mu_create_shards_from_csv(const char *csvname, const char *schemaname, const char *tablename, const char *dbDir, int shardc);
+int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc);
 
 const char * mu_sqlite3_bin();
 

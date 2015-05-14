@@ -78,6 +78,7 @@ pid_t mu_run(const char *bin, char * const* argv, const char *infile, const char
     }
     int err = execvp(bin, argv);
     if ((err!=0) || (errno!=0)){
+      fprintf(stderr,"Error while trying to run %s \n",bin);
       perror("Fatal: execvp failed ");
       exit(EXIT_FAILURE);
     }
@@ -111,6 +112,14 @@ const char * mu_sqlite3_bin(){
 
 int is_mu_temp(const char *fname){
   return ((fname) && (fname==strstr(fname,"/tmp/multicoresql-")));
+}
+
+int is_mu_fatal(const char *msg){
+  return ((msg) &&
+	  ( (msg==strstr(msg,"fatal")) ||
+	    (msg==strstr(msg,"Fatal")) ||
+	    (msg==strstr(msg,"FATAL"))
+	    ));
 }
 
 int mu_remove_temp_dir(const char *dirname){
@@ -207,7 +216,7 @@ int ok_mu_shard_name(const char *name){
   return 1;
 }
 
-char * mu_read_file(const char *fname){
+char * mu_read_small_file(const char *fname){
   errno = 0;
   struct stat fstats;
   
@@ -223,6 +232,13 @@ char * mu_read_file(const char *fname){
     return NULL;
 
   size_t buflen = (size_t) fstats.st_size + 1;
+
+  size_t buflimit = (size_t) (100*1024*1024);  // 100MB self-imposed limit
+
+  if (buflen>buflimit){
+    errno = 0;
+    return NULL;
+  }
   
   char *buf = (char *) mu_malloc(buflen);
 
@@ -231,7 +247,7 @@ char * mu_read_file(const char *fname){
   buf[rcount]=0;
   
   if (rcount < ((size_t) fstats.st_size))
-    fprintf(stderr, "Warning: mu_read_file %s, read %zu bytes, expected %lld \n", fname, rcount, (unsigned long long) fstats.st_size);
+    fprintf(stderr, "Warning: mu_read_small_file %s, read %zu bytes, expected %lld \n", fname, rcount, (unsigned long long) fstats.st_size);
   
   if (errno!=0){
     perror(NULL);
@@ -241,13 +257,26 @@ char * mu_read_file(const char *fname){
   return buf;
 
 }
+
+int mu_warn_run_status(const char *msg,
+		       int status,
+		       const char *bin,
+		       const char *iname,
+		       const char *oname
+		       ){
+  if (status!=0){
+    fprintf(stderr,"%s :\nBad exit status %d from \n%s < %s > %s \n",msg,status,bin,iname,oname);
+  }
+  return status;
+}
   
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir){
   typedef const char * pchar;
   const char *sqlite3_bin = mu_sqlite3_bin();
-  const char *shard_setup_fmt = "create temporary table shardids as select distinct shardid from %s where (shardid is not null) and (shardid!='');\n";
-  const char *shard_count_fmt = "select count(*) from shardids;%s\n";
-  const char *shard_list_fmt = "select shardid from shardids order by shardid;%s\n";   
+  const char *shard_setup_fmt = 
+    "create temporary table shardids as select distinct shardid from %s where (shardid is not null) and (shardid!='');\n"
+    "select count(*) from shardids;\n"
+    "select shardid from shardids order by shardid;\n";   
   int i;
   int shardc;
   char **shardv;
@@ -262,12 +291,15 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   const char *getshardnamesout = mu_cat(tmpdir,"/getshardnames.out");
   FILE *getcmdf = mu_fopen(getshardnamesin, "w");
   fprintf(getcmdf, shard_setup_fmt, tablename);
-  fprintf(getcmdf, shard_count_fmt, "");
-  fprintf(getcmdf, shard_list_fmt, "");
   fclose(getcmdf);
   int runstatus=0;
   waitpid(mu_run(sqlite3_bin, argv, getshardnamesin, getshardnamesout), &runstatus, 0);
-  char *cmdout = mu_read_file(getshardnamesout);
+  mu_warn_run_status("Warning: mu_create_shards_from_sqlite_table()",
+		     runstatus,
+		     sqlite3_bin,
+		     getshardnamesin,
+		     getshardnamesout);
+  char *cmdout = mu_read_small_file(getshardnamesout);
   if (cmdout==NULL)
     return -1;
   char *tok0 = strtok(cmdout, "\n");
@@ -291,34 +323,58 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   fclose(makeshardsf);
   int shardstatus = 0;
   waitpid(mu_run(sqlite3_bin, argv, makeshardsin, makeshardsout), &shardstatus, 0);
+  mu_warn_run_status("Warning: mu_create_shards_from_sqlite_table() ",
+		     shardstatus,
+		     sqlite3_bin,
+		     makeshardsin,
+		     makeshardsout);
   free((void *) makeshardsin);
   free((void *) makeshardsout);
   free((void *) cmdout);
   free((void *) getshardnamesin);
   free((void *) getshardnamesout);
   free((void *) dbname2);
-  mu_remove_temp_dir(tmpdir);
-  free(tmpdir);
-  return 0;
+  if (shardstatus==0)
+    mu_remove_temp_dir(tmpdir);
+  free((void *) tmpdir);
+  return shardstatus;
 }
 
-unsigned int mu_random_seed(void){
-  int fd = open("/dev/random","r");
-  if (f==NULL)
+unsigned int mu_get_random_seed(void){
+  errno = 0;
+  int fd = open("/dev/urandom",O_RDONLY);
+  if (fd<0){
+    perror("Warning: mu_get_random_seed failed to open /dev/urandom: "); 
+    errno = 0;
     return 4570;
+  }
   unsigned int result = 0;
   read(fd, (void *) &result, sizeof(result));
   close(fd);
   return result;
-}    
+}
+
+long int mu_get_long_int_or_die(const char *instring, const char *errfmt){
+  errno = 0;
+  long int result = strtol(instring, NULL, 10);
+  if (errno!=0){
+    fprintf(stderr, errfmt, instring);
+    exit(EXIT_FAILURE);
+  }
+  return result;
+}
 
 int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc){
-  srand(mu_random_seed());
+  srand(mu_get_random_seed());
   const char *tmpdir = mu_create_temp_dir();
   errno = 0;
   if (mkdir(dbDir, 0700)){
-    if (errno != EACCES)
+    if (errno != EEXIST){
+      fprintf(stderr,"Error: mu_create_shards_from_csv could not create requested directory %s\n", dbDir);
+      perror(NULL);
       return -1;
+    }
+    errno=0;
   }
   FILE *csvf = mu_fopen(csvname,"r");
   size_t buf_size=32767;
@@ -329,7 +385,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   for(ishard=0;ishard<shardc;++ishard){
     size_t name_size = 255;
     char shard_fname[name_size];
-    snprintf(shard_fname, name_size, "%s/%.3d\n", tmpdir, ishard);
+    snprintf(shard_fname, name_size, "%s/%.3d", tmpdir, ishard);
     csvshards[ishard] = mu_fopen(shard_fname,"w");
   }
   double dshardc = (double) shardc;
@@ -345,10 +401,30 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
       fputs(csvbuf, csvshards[fnum]);
     }
   }
-  fclose(csvbuf);
+  fclose(csvf);
+  const char *cmdfname = mu_cat(tmpdir,"/createdb");
+  FILE *cmdf = mu_fopen(cmdfname, "w");
+  const char *cmdfmt = 
+    ".open %s/%.3d\n"
+    ".read %s\n"
+    ".import %s/%.3d %s\n";
+    
   for(ishard=0;ishard<shardc;++ishard){
     fclose(csvshards[ishard]);
+    fprintf(cmdf, cmdfmt, dbDir, ishard, schemaname, tmpdir, ishard, tablename);
+    // fprintf(cmdf, ".open %s/%.3d\n", dbDir, ishard);
+    // fprintf(cmdf, ".read %s\n", schemaname);
+    // fprintf(cmdf, ".import %s/%.3d %s\n", tmpdir, ishard, tablename);
   }
-  return -1;
+  fclose(cmdf);
+  const char *sqlite3_bin = mu_sqlite3_bin();
+  char * const argv[] = {"sqlite3",NULL};
+  pid_t pid = mu_run(sqlite3_bin, argv, cmdfname, NULL);
+  int status;
+  waitpid(pid, &status, 0);
+  if (status==0)
+    mu_remove_temp_dir(tmpdir);
+  free((void *) tmpdir);
+  return status;
 }
 
