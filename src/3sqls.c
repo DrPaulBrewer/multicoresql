@@ -15,7 +15,7 @@ int main(int argc, char **argv){
 
   struct mu_CONF *conf = mu_defaultconf();
 
-  const char *getopt_options = "d:t:m:r:v";
+  const char *getopt_options = ":d:t:m:r:v";
   int c;
 
   opterr = 1;
@@ -38,13 +38,15 @@ int main(int argc, char **argv){
       case 'v':
 	verbose = 1;
 	break;	
+      case ':':
+	fprintf(stderr,"Error: 3sqls is confused by your command.  Option -%c needs a setting. If the setting is more than one word, remember to put quotes around it. Please fix this and try again.  \n", optopt);
+	exit(EXIT_FAILURE);
+	break;
       case '?':
-	if (strchr(getopt_options,c))
-	  fprintf(stderr,"Error: 3sqls is confused by your command.  Option -%c needs a setting, but I don't see it. If the setting is more than one word, remember to put quotes around it. Please fix this and try again.  \n", optopt);
-	else if (isprint(optopt))
-	  fprintf(stderr,"Error:  3sqls is confused by your command. I don't know what to do with - %c . Please remove this part or use the right option and try again.  \n",optopt);
+	if (isprint(optopt))
+	  fprintf(stderr,"Error:  3sqls is confused by your command. I don't know what to do with '-%c' . Please fix your command and try again.  \n",optopt);
 	else
-	  fprintf(stderr, "%s\n", "Error: 3sqls is confused by your command because it contains characters that I did not expect to see. Please remove any non-ascii characters from your command and try again.");
+	  fprintf(stderr, "%s\n", "Error: 3sqls is confused by your command because it contains unexpected non-printing characters.");
 	return 1;
       default:
 	abort();
@@ -60,17 +62,17 @@ int main(int argc, char **argv){
   }
 
   if (dbname==NULL){
-    fprintf(stderr,"%s\n","Error: Missing info. 3sqls can't read your mind.  Please tell it what database directory to use. Add -d dbdir to your command and try again");
+    fprintf(stderr,"%s\n","Error: 3sqls needs -d dbdir . Please tell 3sqls what database directory to use. Add -d dbdir to your command and try again");
     exit(EXIT_FAILURE);
   }
 
   if (mapsql==NULL){
-    fprintf(stderr,"%s\n", "Error: Missing info. 3sqls can't read your mind. Please tell it what sql statments to execute (map) across the databases in the database directory.  Add -m \"statement1; statement2; statementN;\" or -m \"$(cat m.sql)\" to your command and try again. ");
+    fprintf(stderr,"%s\n", "Error: 3sqls needs -m mapsql .  Please tell 3sqls what sql statments to execute (map) across the databases in the database directory.  Add -m \"statement1; statement2; statementN;\" or -m \"$(cat m.sql)\" to your command and try again. ");
     exit(EXIT_FAILURE);
   }
   
   if (mu_opendb(conf, dbname)==0)
     return mu_query(conf, mapsql, NULL, reducesql);
   else
-    fprintf(stderr, "Error: Couldn't read the database at  %s \n",dbname);
+    fprintf(stderr, "Error: Could not find the database directory at  %s .  Perhaps the name is misspelled, the database is somewhere else, or does not exist \n",dbname);
 }

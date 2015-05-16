@@ -82,6 +82,7 @@ int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *c
       mu_fLoadExtensions(conf, qcfile);
       if (is_select){
 	fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
+	fprintf(qcfile, "%s;\n", "pragma resultdb.synchronous = 0");
 	if (i==0){
 	  fprintf(qcfile,
 		  "create table resultdb.%s as %s\n",
@@ -101,7 +102,7 @@ int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *c
       }
     }
   }
-  
+
   fclose(qcfile);
   
   return 0;
@@ -136,6 +137,7 @@ int mu_query(struct mu_CONF *conf,
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
     reducef = mu_fopen(reducefname, "w");
     fprintf(reducef, ".open %s/coredb.000\n", tmpdir);
+    fprintf(reducef, "%s;\n", "pragma synchronous = 0"); 
     mu_fLoadExtensions(conf, reducef);
   }
   

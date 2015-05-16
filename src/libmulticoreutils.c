@@ -284,6 +284,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   char * const argv[] = {"sqlite3", dbname2, (char * const) NULL};
   const char *shard_data_fmt =
     "attach database '%s/%s' as 'shard';\n"
+    "pragma synchronous = 0;\n"
     "create table shard.%s as select * from %s where shardid='%s';\n"
     "detach database shard;\n";
   const char *tmpdir = mu_create_temp_dir();
@@ -394,6 +395,8 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
     if ( linenum > skip ){
       double rand01 = ((double) rand())/((double) RAND_MAX);
       int fnum = (int) (dshardc*rand01);
+      if (fnum==shardc)
+	fnum=0;
       if ((fnum<0) || (fnum>=shardc)){
 	fprintf(stderr,"Fatal: mu_create_shards_from_csv() generated random number %d not between 0 and %d \n", fnum, shardc);
 	exit(EXIT_FAILURE);
@@ -406,6 +409,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   FILE *cmdf = mu_fopen(cmdfname, "w");
   const char *cmdfmt = 
     ".open %s/%.3d\n"
+    "pragma synchronous = 0;\n"
     ".read %s\n"
     ".import %s/%.3d %s\n";
     
