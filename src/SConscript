@@ -1,5 +1,5 @@
 env = Environment(CC = 'clang-3.6')
-env.Program(['q0.c','libmulticoresql0.c','libmulticoreutils.c'])
-env.Program(['q1.c','libmulticoresql1.c','libmulticoreutils.c'])
+env.Program(['3sqls.c','libmulticoresql0.c','libmulticoreutils.c'])
+env.Program(['sqls.c','libmulticoresql1.c','libmulticoreutils.c'])
 env.Program(['sqlsfromcsv.c','libmulticoreutils.c'])
 env.Program(['sqlsfromsqlite.c','libmulticoreutils.c'])
