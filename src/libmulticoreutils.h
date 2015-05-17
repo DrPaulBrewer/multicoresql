@@ -23,7 +23,9 @@ void mu_abortOnError(const char *msg);
 
 FILE* mu_fopen(const char *fname, const char *mode);
 
-pid_t mu_run(const char *bin, char * const* argv, const char *infile, const char *outfile);
+pid_t mu_run(const char *bin, char * const* argv, const char *infile, const char *outfile, const char *errfile);
+
+int mu_warn_run_status(const char *msg, int status, const char *bin, const char *iname, const char *oname, const char *ename);
 
 int mu_getcoreshardc(int i, int n, int c);
 

@@ -113,49 +113,84 @@ int mu_query(struct mu_CONF *conf,
 
   char reducefname[bufsize];
   FILE *reducef;
-
   char resultfname[bufsize];
+  char rederrfname[bufsize];
+  
   snprintf(resultfname, bufsize, "%s/result", tmpdir);
   FILE *resultf;
   
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
+    snprintf(rederrfname, bufsize, "%s/query.reduce.err", tmpdir);
     reducef = mu_fopen(reducefname, "w");
     fprintf(reducef, ".open %s/coredb.000\n", tmpdir);
     fprintf(reducef, "%s;\n", "pragma synchronous = 0"); 
     mu_fLoadExtensions(reducef);
   }
+
+  char * iname[conf->ncores];
+  char * oname[conf->ncores];
+  char * ename[conf->ncores];
+  char * coredbname[conf->ncores];
   
   for(icore=0;icore<(conf->ncores);++icore){
-    char fname[bufsize], resultname[bufsize], coredbname[bufsize];
-    snprintf(fname, bufsize, "%s/query.sqlite.core.%.3d", tmpdir, icore);
-    snprintf(resultname, bufsize, "%s/results.core.%.3d", tmpdir, icore);
-    snprintf(coredbname,bufsize,"%s/coredb.%.3d",tmpdir,icore);
+    iname[icore] = mu_malloc(bufsize);
+    oname[icore] = mu_malloc(bufsize);
+    ename[icore] = mu_malloc(bufsize);
+    coredbname[icore] = mu_malloc(bufsize);
+    snprintf(iname[icore], bufsize, "%s/query.sqlite.core.%.3d", tmpdir, icore);
+    snprintf(oname[icore], bufsize, "%s/results.core.%.3d", tmpdir, icore);
+    snprintf(ename[icore], bufsize, "%s/errors.sqlite.core.%.3d", tmpdir, icore);
+    snprintf(coredbname[icore],bufsize,"%s/coredb.%.3d",tmpdir,icore);
     if ((reducef) && (icore>0)){
-      fprintf(reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname, icore);
+      fprintf(reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
       fprintf(reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
       fprintf(reducef, "detach database 'coredb%.3d';\n", icore);
     }
     int shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = mu_getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
-    mu_makeQueryCoreFile(conf, fname, coredbname, shardc, shardv, mapsql);
+    mu_makeQueryCoreFile(conf, iname[icore], coredbname[icore], shardc, shardv, mapsql);
     errno = 0;
     char * const argv[] = {"sqlite3", (char * const) NULL};
-    worker[icore] = mu_run(conf->bin,argv,fname,resultname);
+    worker[icore] = mu_run(conf->bin,argv,iname[icore],oname[icore],ename[icore]);
     free(shardv);
   }
 
   // wait for workers
-  for(icore=0;icore<conf->ncores;++icore)
-    waitpid(worker[icore],&status,0);
+
+  int worker_status[conf->ncores];
+  
+  for(icore=0;icore<conf->ncores;++icore){
+    worker_status[icore] = 0;
+    waitpid(worker[icore],worker_status+icore,0);
+  }
+
+  for(icore=0;icore<conf->ncores;++icore){
+    char warnstr[32];
+    snprintf(warnstr,32,"map query worker %.3d",icore);
+    if (mu_warn_run_status(warnstr,worker_status[icore],conf->bin,iname[icore],oname[icore],ename[icore]))
+      return -1;
+    free( (void *) iname[icore]);
+    free( (void *) oname[icore]);
+    free( (void *) ename[icore]);
+    free( (void *) coredbname[icore]);
+  }
   
   if (reducesql){
+    int reducer_status=0;
     fprintf(reducef, "%s\n", reducesql);
     fclose(reducef);
     char * const argv[] = {"sqlite3", (char *const) NULL};
-    int reducer = mu_run(conf->bin, argv, reducefname, resultfname);
+    int reducer = mu_run(conf->bin, argv, reducefname, resultfname, rederrfname);
+    waitpid(reducer, &reducer_status, 0);
+    if (mu_warn_run_status("reduce query worker ",
+			   reducer_status,
+			   conf->bin,
+			   reducefname,
+			   resultfname,
+			   rederrfname))
+      return -1;
     char *cmd = mu_cat("cat ",resultfname);
-    waitpid(reducer, &status, 0);
     system(cmd);
     free(cmd);
   }

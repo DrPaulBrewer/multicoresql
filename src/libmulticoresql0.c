@@ -104,8 +104,6 @@ int mu_query(struct mu_CONF *conf,
 {
   int icore;
 
-  int status;
-
   size_t bufsize=255; // for constructing fnames
   
   pid_t worker[conf->ncores];
@@ -121,8 +119,11 @@ int mu_query(struct mu_CONF *conf,
   snprintf(resultfname, bufsize, "%s/result", tmpdir);
   FILE *resultf;
 
+  char rerrfname[bufsize];
+
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
+    snprintf(rerrfname, bufsize, "%s/query.reduce.err", tmpdir);
     reducef = mu_fopen(reducefname, "w");
     mu_fLoadExtensions(reducef);
     if (createtablesql)
@@ -130,16 +131,19 @@ int mu_query(struct mu_CONF *conf,
     fprintf(reducef,"%s\n", "BEGIN TRANSACTION;");
   }
   
-  char fname[bufsize], resultname[bufsize];
+  char fname[bufsize], resultname[bufsize], errname[bufsize];
   int shardc;
   const char ** shardv;
   char * const argv[] = {"sqlite3", (char * const) NULL};
+  char * enames[3];
   
   /* create block macro */
 #define RUN_CORE(mycore) \
   icore = mycore; \
   snprintf(fname, bufsize, "%s/query.sqlite.core.%.3d", tmpdir, icore); \
   snprintf(resultname,bufsize,"%s/results.core.%.3d",tmpdir,icore); \
+  snprintf(errname,bufsize,"%s/err.core.%.3d",tmpdir,icore);
+  enames[icore] = errname;
   if (reducesql) \
     fprintf(reducef, ".read %s \n", resultname); \
   shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc); \
@@ -151,7 +155,7 @@ int mu_query(struct mu_CONF *conf,
 		       shardv,						\
 		       mapsql);						\
   errno = 0;								\
-  worker[icore] = mu_run(conf->bin,argv,fname,resultname);		\
+  worker[icore] = mu_run(conf->bin,argv,fname,resultname,errname);	\
   free(shardv);								\
   
   /* end of macro */
@@ -161,19 +165,34 @@ int mu_query(struct mu_CONF *conf,
   RUN_CORE(1);
   RUN_CORE(2);
 
+  int status0 = 0;
+  int status1 = 0;
+  int status2 = 0;
+
   // wait for workers
-  waitpid(worker[0], &status, 0);
-  waitpid(worker[1], &status, 0);
-  waitpid(worker[2], &status, 0);
+  waitpid(worker[0], &status0, 0);
+  waitpid(worker[1], &status1, 0);
+  waitpid(worker[2], &status2, 0);
+  
+#define CHECK_CORE(mycore) \
+  if (mu_warn_run_status("mu_query worker",status0,conf->bin,NULL,NULL,enames[mycore])) \
+    return -1; \
+
+  CHECK_CORE(0);
+  CHECK_CORE(1);
+  CHECK_CORE(2);   
   
   if (reducesql){
+    int reducer_status = 0;
     fprintf(reducef,"%s\n", "COMMIT;");
     fprintf(reducef, "%s\n", reducesql);
     fclose(reducef);
     char * const argv[] = {"sqlite3", (char *const) NULL};
-    int reducer = mu_run(conf->bin, argv, reducefname, resultfname);
+    int reducer = mu_run(conf->bin, argv, reducefname, resultfname, rerrfname);
+    waitpid(reducer, &reducer_status, 0);
+    if (mu_warn_run_status("Warning in reduce query",reducer_status,conf->bin,reducefname,resultfname,rerrfname))
+      return -1;
     char *cmd = mu_cat("cat ",resultfname);
-    waitpid(reducer, &status, 0);
     system(cmd);
     free(cmd);
   }
