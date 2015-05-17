@@ -432,18 +432,38 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   return status;
 }
 
-int mu_fLoadExtensions(FILE *f){
+const char *mu_sqlite3_extensions(void){
+  static char * exts = NULL;
+  static int extdone = 0;
+  if (extdone)
+    return (const char *) exts;
+  extdone = 1;
   const char *extensions = getenv("MULTICORE_SQLITE3_EXTENSIONS");
-  if ( extensions && (strlen(extensions)>0) ){
-    char *ext = mu_dup(extensions);
-    char *tok = strtok(ext, " ");
-    while (tok){
-      errno = 0;
-      fprintf(f,".load %s\n",tok);
-      tok = strtok(NULL," ");
-    }
-    free(ext); 
+  if (extensions==NULL){
+    return (const char *) exts;
   }
+  size_t bufsize = 1024;
+  exts = mu_malloc(bufsize);
+  size_t offset = 0;
+  char *e = mu_dup(extensions);
+  char *tok = strtok(e, " ");
+  errno = 0;
+  while (tok && (offset<bufsize) && (!errno)){
+    offset += snprintf(exts+offset,
+		       bufsize-offset,
+		       ".load %s\n",
+		       tok);
+    tok = strtok(NULL, " ");
+  }
+  free(e);
+  return (const char *) exts;
+}
+
+int mu_fLoadExtensions(FILE *f){
+  const char *exts = mu_sqlite3_extensions();
+  errno = 0;
+  if (exts)
+    fputs(exts, f);
   return errno;
 }
 
