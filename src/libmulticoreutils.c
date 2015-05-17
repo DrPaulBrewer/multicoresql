@@ -432,3 +432,18 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   return status;
 }
 
+int mu_fLoadExtensions(FILE *f){
+  const char *extensions = getenv("MULTICORE_SQLITE3_EXTENSIONS");
+  if ( extensions && (strlen(extensions)>0) ){
+    char *ext = mu_dup(extensions);
+    char *tok = strtok(ext, " ");
+    while (tok){
+      errno = 0;
+      fprintf(f,".load %s\n",tok);
+      tok = strtok(NULL," ");
+    }
+    free(ext); 
+  }
+  return errno;
+}
+

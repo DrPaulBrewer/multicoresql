@@ -15,8 +15,6 @@ struct mu_CONF {
 
 struct mu_CONF * mu_defaultconf();
 
-int mu_fLoadExtensions(struct mu_CONF *conf, FILE *f);
-
 int mu_opendb(struct mu_CONF * conf, const char *dbdir);
 
 int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql);

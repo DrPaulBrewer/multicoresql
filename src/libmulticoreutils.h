@@ -53,4 +53,6 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
 
 const char * mu_sqlite3_bin();
 
-#endif /* LIBMULTICOREbUTILS_H */
+int mu_fLoadExtensions(FILE *f);
+
+#endif /* LIBMULTICOREUTILS_H */

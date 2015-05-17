@@ -16,7 +16,6 @@ struct mu_CONF * mu_defaultconf(){
   struct mu_CONF * c = mu_malloc(sizeof(mu_conf_type));
   c->bin = mu_sqlite3_bin();
   c->db = NULL;
-  c->extensions = getenv("MULTICORE_SQLITE3_EXTENSIONS");
   c->otablename = "t";
   c->isopen = 0;
   c->ncores = 3;
@@ -53,20 +52,6 @@ int mu_opendb(struct mu_CONF * conf, const char *dbdir){
   return (conf->isopen)? 0: -1;
 }
 
-int mu_fLoadExtensions(struct mu_CONF *conf, FILE *f){
-  if ( (conf->extensions) && (strlen(conf->extensions)>0) ){
-    char *ext = mu_dup(conf->extensions);
-    char *tok = strtok(ext, " ");
-    while (tok){
-      errno = 0;
-      fprintf(f,".load %s\n",tok);
-      tok = strtok(NULL," ");
-    }
-    free(ext); // safe?
-  }
-  return errno;
-}
-
 int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
 
   int i;
@@ -92,7 +77,7 @@ int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, int getschema
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       fprintf(qcfile, ".open %s\n", shardv[i]);
-      mu_fLoadExtensions(conf, qcfile);
+      mu_fLoadExtensions(qcfile);
       if ((getschema) && (i==0)){
 	fprintf(qcfile,
 		qSchema,
@@ -139,7 +124,7 @@ int mu_query(struct mu_CONF *conf,
   if (reducesql){
     snprintf(reducefname, bufsize, "%s/query.reduce", tmpdir);
     reducef = mu_fopen(reducefname, "w");
-    mu_fLoadExtensions(conf, reducef);
+    mu_fLoadExtensions(reducef);
     if (createtablesql)
       fprintf(reducef, "%s\n", createtablesql);
     fprintf(reducef,"%s\n", "BEGIN TRANSACTION;");

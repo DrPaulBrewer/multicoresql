@@ -8,7 +8,6 @@ struct mu_CONF * mu_defaultconf(){
   if (c->bin==NULL)
     c->bin = "sqlite3";
   c->db = NULL;
-  c->extensions = getenv("MULTICORE_SQLITE3_EXTENSIONS");
   c->otablename = "t";
   c->isopen = 0;
   c->ncores = (int) sysconf(_SC_NPROCESSORS_ONLN);
@@ -51,20 +50,6 @@ int mu_opendb(struct mu_CONF * conf, const char *dbdir){
 
 
 
-int mu_fLoadExtensions(struct mu_CONF *conf, FILE *f){
-  if ( (conf->extensions) && (strlen(conf->extensions)>0) ){
-    char *ext = mu_dup(conf->extensions);
-    char *tok = strtok(ext, " ");
-    while (tok){
-      errno = 0;
-      fprintf(f,".load %s\n",tok);
-      tok = strtok(NULL," ");
-    }
-    free(ext); 
-  }
-  return errno;
-}
-
 int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
 
   int i;
@@ -79,7 +64,7 @@ int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *c
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       fprintf(qcfile, ".open %s\n", shardv[i]);
-      mu_fLoadExtensions(conf, qcfile);
+      mu_fLoadExtensions(qcfile);
       if (is_select){
 	fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
 	fprintf(qcfile, "%s;\n", "pragma resultdb.synchronous = 0");
@@ -138,7 +123,7 @@ int mu_query(struct mu_CONF *conf,
     reducef = mu_fopen(reducefname, "w");
     fprintf(reducef, ".open %s/coredb.000\n", tmpdir);
     fprintf(reducef, "%s;\n", "pragma synchronous = 0"); 
-    mu_fLoadExtensions(conf, reducef);
+    mu_fLoadExtensions(reducef);
   }
   
   for(icore=0;icore<(conf->ncores);++icore){
