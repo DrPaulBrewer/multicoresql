@@ -3,3 +3,4 @@
 *.db
 .scons*
 build/*
+doc/*
