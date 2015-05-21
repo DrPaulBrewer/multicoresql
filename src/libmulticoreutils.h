@@ -1,3 +1,6 @@
+/** @file
+ */
+
 #ifndef LIBMULTICOREUTILS_H
 #define LIBMULTICOREUTILS_H
 

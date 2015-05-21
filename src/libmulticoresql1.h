@@ -1,3 +1,6 @@
+/** @file 
+*/
+
 #ifndef LIBMULTICORESQL_H
 #define LIBMULTICORESQL_H
 
