@@ -1,4 +1,4 @@
-#include "libmulticoreutils.h"
+#include "libmulticoresql.h"
 
 int main(int argc, char **argv){
   if (argc!=7){

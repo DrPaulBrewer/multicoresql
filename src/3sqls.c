@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "libmulticoresql0.h"
+#include "libmulticoresql.h"
 
 int main(int argc, char **argv){
   char *dbname = NULL;  /* -d */
@@ -52,6 +52,9 @@ int main(int argc, char **argv){
 	abort();
       }
   
+
+  conf->ncores = 3;
+
   if (verbose){
     fprintf(stdout,"x3 \n");
     fprintf(stdout,"number of cores (-c): %d\n",conf->ncores); 
@@ -72,7 +75,7 @@ int main(int argc, char **argv){
   }
   
   if (mu_opendb(conf, dbname)==0)
-    return mu_query(conf, mapsql, NULL, reducesql);
+    return mu_query3(conf, mapsql, NULL, reducesql);
   else
     fprintf(stderr, "Error: Could not find the database directory at  %s .  Perhaps the name is misspelled, the database is somewhere else, or does not exist \n",dbname);
 }
