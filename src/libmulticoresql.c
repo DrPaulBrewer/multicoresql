@@ -26,7 +26,7 @@ char * mu_dup(const char *s){
   char *x = strdup(s);
   if ((x==NULL) || (errno!=0)){
     perror("out of memory");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   return x;
 }
@@ -311,6 +311,162 @@ int mu_warn_run_status(const char *msg,
     }
   }
   return status;
+}
+
+struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *taskname, int tasknum){
+  typedef struct mu_SQLITE3_TASK mu_SQLITE3_TASK_type;
+  struct mu_SQLITE3_TASK *task = mu_malloc(sizeof(mu_SQLITE3_TASK_type));
+  task->pid=0;
+  task->status=0;
+  task->dirname = mu_dup(dirname);
+  task->taskname = mu_dup(taskname);
+  task->tasknum = tasknum;
+  const char *fmt = "%s/%s.%s.%3d";
+  size_t bufsize = 1+snprintf(NULL,0,fmt,dirname,taskname,"progress", tasknum);
+  char *iname = mu_malloc(bufsize);
+  char *oname = mu_malloc(bufsize);
+  char *ename = mu_malloc(bufsize);
+  char *pname = mu_malloc(bufsize);
+  snprintf(iname, bufsize, fmt, dirname, taskname, "in", tasknum);
+  snprintf(oname, bufsize, fmt, dirname, taskname, "out", tasknum);
+  snprintf(ename, bufsize, fmt, dirname, taskname, "err", tasknum);
+  snprintf(pname, bufsize, fmt, dirname, taskname, "progress", tasknum);
+  task->iname = (const char *) iname;
+  task->oname = (const char *) oname;
+  task->ename = (const char *) ename;
+  task->pname = (const char *) pname;
+  return task;
+}
+
+int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
+  errno = 0;
+  const char *env_sqlite3_bin = getenv("MULTICORE_SQLITE3_BIN");
+  const char *default_sqlite3_bin = "sqlite3";
+  const char *bin =  (env_sqlite3_bin)? env_sqlite3_bin: default_sqlite3_bin;    
+  char * const argv[] = { "sqlite3" , NULL };
+  pid_t pid = fork();
+  if (pid>0) {
+    task->pid = pid;
+    return pid;
+  }
+  if (pid==0){
+    errno = 0;
+    int rd, wd, ed;
+    if (task->iname) {
+      rd = open(task->iname, O_RDONLY);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror(mu_cat("Fatal: mu_run could not open input file ",task->iname));
+	} 
+	exit(EXIT_FAILURE);
+      }
+      dup2(rd,0);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror("Fatal: mu_run could not set input file with dup2 ");
+	}
+	exit(EXIT_FAILURE);
+      }
+    }
+    if (task->oname){
+      wd = open(task->oname, O_WRONLY | O_CREAT, 0700);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror(mu_cat("Fatal: mu_run could not open output file ",task->oname));
+	}
+	exit(EXIT_FAILURE);
+      }
+      dup2(wd,1);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror("Fatal: mu_run could not set output file with dup2 ");
+	}
+	exit(EXIT_FAILURE);
+      }
+    }
+    if (task->ename){
+      ed = open(task->ename, O_WRONLY | O_CREAT, 0700);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror(mu_cat("Fatal: mu_run could not open error file ",task->ename));
+	}
+	exit(EXIT_FAILURE);
+      }
+      dup2(ed,2);
+      if (errno!=0){
+	if (abortmsg){
+	  fputs(abortmsg, stderr);
+	  perror("Fatal: mu_run could not set error file with dup2 ");
+	}
+	exit(EXIT_FAILURE);
+      }      
+    }
+    int err = execvp(bin, argv);
+    if ((err!=0) || (errno!=0)){
+      if (abortmsg){
+      fputs(abortmsg, stderr);
+      fprintf(stderr,"Error while trying to run %s \n",bin);
+      perror("Fatal: execvp failed ");
+      }
+      exit(EXIT_FAILURE);
+    } 
+  }
+  if (abortmsg){
+    fputs(abortmsg, stderr);
+    perror("Fatal: mu_run() failed to fork and run command ");
+    exit(EXIT_FAILURE);
+  }
+  return errno;
+}
+
+int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
+  waitpid(task->pid, &(task->status), 0);
+  const char *errs = NULL;
+  if (task->ename)
+    errs = mu_read_small_file(task->ename);
+  if ((task->status!=0) || (errs != NULL)){
+    if (abortmsg){
+      fprintf(stderr,"%s :\n",abortmsg);
+      fprintf(stderr, "Exit status %d\n", task->status);
+      fputs("sqlite3 task \n", stderr);
+      if (task->iname)
+	fprintf(stderr," input_file %s \n",task->iname);
+      if (task->oname)
+	fprintf(stderr," output_file %s \n",task->oname);
+      if (task->ename)
+	fprintf(stderr," error_file %s \n",task->ename);
+      fputs("\n",stderr);
+      if (task->ename){
+	const char *errs = mu_read_small_file(task->ename);
+	if (errs){
+	  fputs("sqlite3 ",stderr);
+	  fputs(" reported these errors:\n", stderr);
+	  fputs(errs, stderr);
+	  fputs("\n", stderr);
+	  free((void *) errs);
+	}
+      }
+      exit(EXIT_FAILURE);
+    }
+  }
+  if ((task->status == 0) && (errs != NULL))
+    return -1;
+  return task->status;
+}
+
+void mu_free_task(struct mu_SQLITE3_TASK *task){
+  free((void *) task->dirname);
+  free((void *) task->taskname);
+  free((void *) task->iname);
+  free((void *) task->oname);
+  free((void *) task->ename);
+  free((void *) task->pname);
+  free((void *) task);
 }
 
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir){

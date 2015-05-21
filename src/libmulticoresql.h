@@ -26,6 +26,23 @@ void mu_abortOnError(const char *msg);
 
 FILE* mu_fopen(const char *fname, const char *mode);
 
+struct mu_SQLITE3_TASK {
+  pid_t pid;
+  int status;
+  const char *dirname;
+  const char *taskname;
+  int tasknum;
+  const char *iname;
+  const char *oname;
+  const char *ename;
+  const char *pname;
+};
+
+struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *taskname, int tasknum);
+int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg);
+int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg);
+void mu_free_task(struct mu_SQLITE3_TASK *task);
+
 pid_t mu_run(const char *bin, char * const* argv, const char *infile, const char *outfile, const char *errfile);
 
 int mu_warn_run_status(const char *msg, int status, const char *bin, const char *iname, const char *oname, const char *ename);
