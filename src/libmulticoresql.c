@@ -10,7 +10,7 @@ void * mu_malloc(size_t size){
   void * p = malloc(size);
   if (p==NULL){
     fprintf(stderr,"%s\n","Fatal error: out of memory\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   return p;
 }
@@ -34,14 +34,14 @@ char * mu_dup(const char *s){
 void mu_abortOnError(const char *msg){
   if (errno!=0){
     perror(msg);
-    exit(1);
+    exit(EXIT_FAILURE);
   } 
 }
 
 FILE* mu_fopen(const char *fname, const char *mode){
   errno = 0;
   FILE *f = fopen(fname, mode);
-  mu_abortOnError(mu_cat("Fatal error on opening file ",fname));
+  mu_abortOnError(mu_cat("Fatal error -- can not open file. The file may be inaccessible or missing,  File: ",fname));
   return f;
 }
 
@@ -250,7 +250,7 @@ int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
   pid_t pid = fork();
   if (pid>0) {
     task->pid = pid;
-    return pid;
+    return 0;
   }
   if (pid==0){
     errno = 0;
