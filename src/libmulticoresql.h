@@ -43,10 +43,6 @@ int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg);
 int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg);
 void mu_free_task(struct mu_SQLITE3_TASK *task);
 
-pid_t mu_run(const char *bin, char * const* argv, const char *infile, const char *outfile, const char *errfile);
-
-int mu_warn_run_status(const char *msg, int status, const char *bin, const char *iname, const char *oname, const char *ename);
-
 int mu_getcoreshardc(int i, int n, int c);
 
 const char ** mu_getcoreshardv(int i, int n, int c, const char ** v);
@@ -73,8 +69,6 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
 
 int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc);
 
-const char * mu_sqlite3_bin();
-
 int mu_fLoadExtensions(FILE *f);
 
 
@@ -83,7 +77,6 @@ int mu_fLoadExtensions(FILE *f);
  */
 
 struct mu_CONF {
-  const char *bin; /**< sqlite3 binary location */
   const char *db; /**< directory containg sqlite3 shards */
   const char *otablename; /**< table name for collecting data from map query */ 
   int isopen; /**< flag indicating database has been opened */
