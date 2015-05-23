@@ -447,16 +447,6 @@ unsigned int mu_get_random_seed(void){
   return result;
 }
 
-long int mu_get_long_int_or_die(const char *instring, const char *errfmt){
-  errno = 0;
-  long int result = strtol(instring, NULL, 10);
-  if (errno!=0){
-    fprintf(stderr, errfmt, instring);
-    exit(EXIT_FAILURE);
-  }
-  return result;
-}
-
 int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc){
   srand(mu_get_random_seed());
   const char *tmpdir = mu_create_temp_dir();

@@ -1,5 +1,15 @@
 #include "libmulticoresql.h"
 
+long int get_long_int_or_die(const char *instring, const char *errfmt){
+  errno = 0;
+  long int result = strtol(instring, NULL, 10);
+  if (errno!=0){
+    fprintf(stderr, errfmt, instring);
+    exit(EXIT_FAILURE);
+  }
+  return result;
+}
+
 int main(int argc, char **argv){
   if (argc!=7){
     fprintf(stderr,
@@ -12,7 +22,7 @@ int main(int argc, char **argv){
   int shardcount = 0;
   const char *csvname = argv[1];
   errno = 0;
-  skiplines = (int) mu_get_long_int_or_die(argv[2],
+  skiplines = (int) get_long_int_or_die(argv[2],
 					   "sqlsfromcsv: parameter skiplines, expected number of lines to skip, got: %s \n");
   if (skiplines < 0)
     skiplines = -skiplines;
@@ -27,8 +37,8 @@ int main(int argc, char **argv){
   free((void *) schema);
   const char *tablename = argv[4];
   const char *dbDir = argv[5];
-  shardcount = (int) mu_get_long_int_or_die(argv[6],
-					    "sqlsfromscsv: expected positive number of shards, got: %s \n");
+  shardcount = (int) get_long_int_or_die(argv[6],
+					 "sqlsfromscsv: expected positive number of shards, got: %s \n");
 
   if (shardcount<0)
     shardcount = -shardcount;

@@ -63,8 +63,6 @@ char * mu_read_small_file(const char *fname);
 
 int ok_mu_shard_name(const char *name);
 
-long int mu_get_long_int_or_die(const char *instring, const char *errfmt);
-
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir);
 
 int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc);
