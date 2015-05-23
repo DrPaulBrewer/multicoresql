@@ -6,7 +6,7 @@
 
 #include "libmulticoresql.h"
 
-void * mu_malloc(size_t size){
+static void * mu_malloc(size_t size){
   void * p = malloc(size);
   if (p==NULL){
     fprintf(stderr,"%s\n","Fatal error: out of memory\n");
@@ -15,13 +15,13 @@ void * mu_malloc(size_t size){
   return p;
 }
 
-char * mu_cat(const char *s1, const char *s2){
+static char * mu_cat(const char *s1, const char *s2){
   char * s = mu_malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   sprintf(s,"%s%s",s1,s2);
   return s;
 }
 
-char * mu_dup(const char *s){
+static char * mu_dup(const char *s){
   errno = 0;
   char *x = strdup(s);
   if ((x==NULL) || (errno!=0)){
@@ -31,27 +31,27 @@ char * mu_dup(const char *s){
   return x;
 }
 
-void mu_abortOnError(const char *msg){
+static void mu_abortOnError(const char *msg){
   if (errno!=0){
     perror(msg);
     exit(EXIT_FAILURE);
   } 
 }
 
-FILE* mu_fopen(const char *fname, const char *mode){
+static FILE* mu_fopen(const char *fname, const char *mode){
   errno = 0;
   FILE *f = fopen(fname, mode);
   mu_abortOnError(mu_cat("Fatal error -- can not open file. The file may be inaccessible or missing,  File: ",fname));
   return f;
 }
 
-int mu_getcoreshardc(int i, int n, int c){
+static int mu_getcoreshardc(int i, int n, int c){
   int each = c/n;
   int extras = (i<(c%n))? 1: 0;
   return each+extras;
 }
 
-const char ** mu_getcoreshardv(int i, int n, int c, const char ** v){
+static const char ** mu_getcoreshardv(int i, int n, int c, const char ** v){
   typedef char * pchar;
   int shardc = mu_getcoreshardc(i,n,c);
   const char ** result = mu_malloc(shardc*sizeof(pchar));
@@ -62,11 +62,11 @@ const char ** mu_getcoreshardv(int i, int n, int c, const char ** v){
   return result;
 }
 
-int is_mu_temp(const char *fname){
+static int is_mu_temp(const char *fname){
   return ((fname) && (fname==strstr(fname,"/tmp/multicoresql-")));
 }
 
-int is_mu_fatal(const char *msg){
+static int is_mu_fatal(const char *msg){
   return ((msg) &&
 	  ( (msg==strstr(msg,"fatal")) ||
 	    (msg==strstr(msg,"Fatal")) ||
@@ -74,7 +74,7 @@ int is_mu_fatal(const char *msg){
 	    ));
 }
 
-int mu_remove_temp_dir(const char *dirname){
+static int mu_remove_temp_dir(const char *dirname){
   if (is_mu_temp(dirname))
     {
       char *fmt = "rm -rf %s";
@@ -91,7 +91,7 @@ int mu_remove_temp_dir(const char *dirname){
   return -1;
 }
 
-int exists_mu_temp_file(const char *fname){
+static int exists_mu_temp_file(const char *fname){
   FILE *f;
   int result;
   if (is_mu_temp(fname)){
@@ -107,7 +107,7 @@ int exists_mu_temp_file(const char *fname){
   return 0;
 }
 
-int exists_mu_temp_done(const char *dirname){
+static int exists_mu_temp_done(const char *dirname){
   if (is_mu_temp(dirname)){
     size_t bufsize = 255;
     char fname[bufsize];
@@ -117,7 +117,7 @@ int exists_mu_temp_done(const char *dirname){
   return 0;
 }
 
-int mu_mark_temp_done(const char *dirname){
+static int mu_mark_temp_done(const char *dirname){
   FILE *f;
   if (is_mu_temp(dirname)){
     size_t bufsize = 255;
@@ -142,12 +142,12 @@ int mu_mark_temp_done(const char *dirname){
   return -1;
 }
 
-const char * mu_create_temp_dir(){
+static const char * mu_create_temp_dir(){
   char * template = mu_dup("/tmp/multicoresql-XXXXXX");
   return (const char *) mkdtemp(template);
 }
 
-int ok_mu_shard_name(const char *name){
+static int ok_mu_shard_name(const char *name){
   int  i = 0;
   char c = name[0];
   if ( (c==0) || (c=='.') )
@@ -216,7 +216,7 @@ char * mu_read_small_file(const char *fname){
 
 }
 
-struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *taskname, int tasknum){
+static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *taskname, int tasknum){
   typedef struct mu_SQLITE3_TASK mu_SQLITE3_TASK_type;
   struct mu_SQLITE3_TASK *task = mu_malloc(sizeof(mu_SQLITE3_TASK_type));
   task->pid=0;
@@ -241,7 +241,7 @@ struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *tasknam
   return task;
 }
 
-int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
+static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
   errno = 0;
   const char *env_sqlite3_bin = getenv("MULTICORE_SQLITE3_BIN");
   const char *default_sqlite3_bin = "sqlite3";
@@ -327,7 +327,7 @@ int mu_start_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
   return errno;
 }
 
-int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
+static int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
   waitpid(task->pid, &(task->status), 0);
   const char *errs = NULL;
   if (task->ename)
@@ -362,7 +362,7 @@ int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *abortmsg){
   return task->status;
 }
 
-void mu_free_task(struct mu_SQLITE3_TASK *task){
+static void mu_free_task(struct mu_SQLITE3_TASK *task){
   free((void *) task->dirname);
   free((void *) task->taskname);
   free((void *) task->iname);
@@ -433,7 +433,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   return 0;
 }
 
-unsigned int mu_get_random_seed(void){
+static unsigned int mu_get_random_seed(void){
   errno = 0;
   int fd = open("/dev/urandom",O_RDONLY);
   if (fd<0){
@@ -508,7 +508,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   return 0;
 }
 
-const char *mu_sqlite3_extensions(void){
+static const char *mu_sqlite3_extensions(void){
   static char * exts = NULL;
   static int extdone = 0;
   if (extdone)
@@ -535,7 +535,7 @@ const char *mu_sqlite3_extensions(void){
   return (const char *) exts;
 }
 
-int mu_fLoadExtensions(FILE *f){
+static int mu_fLoadExtensions(FILE *f){
   const char *exts = mu_sqlite3_extensions();
   errno = 0;
   if (exts)
@@ -544,7 +544,7 @@ int mu_fLoadExtensions(FILE *f){
 }
 
 
-int mu_makeQueryCoreFile3(struct mu_DBCONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
+static int mu_makeQueryCoreFile3(struct mu_DBCONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 
@@ -712,7 +712,7 @@ int mu_opendb(struct mu_DBCONF * conf, const char *dbdir){
 
 
 
-int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
+static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 

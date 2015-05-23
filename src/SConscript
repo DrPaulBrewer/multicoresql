@@ -1,4 +1,4 @@
-env = Environment(CC='clang-3.6', CFLAGS = '-O2', LIBPATH = '.')
+env = Environment(CC='clang-3.6', CFLAGS = '-Oz', LIBPATH = '.')
 env.StaticLibrary('multicoresql', 'libmulticoresql.c')
 env.Program('3sqls.c', LIBS=['multicoresql'])
 env.Program('sqls.c', LIBS=['multicoresql'])
