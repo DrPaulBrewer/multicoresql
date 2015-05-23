@@ -12,8 +12,7 @@ int main(int argc, char **argv){
   char *mapsql = NULL; /* -m */
   char *reducesql = NULL; /* -r */
   int verbose = 0; /* -v */
-
-  struct mu_DBCONF *conf = mu_defaultconf();
+  int ncores = 0; /* -c */
 
   const char *getopt_options = "c:d:t:m:r:v";
   int c;
@@ -25,7 +24,7 @@ int main(int argc, char **argv){
       {
       case 'c':
 	errno = 0;
-	conf->ncores = (int) strtol(optarg,NULL,10);
+	ncores = (int) strtol(optarg,NULL,10);
 	if (errno==0)
 	  break;
 	fprintf(stderr,"Option -c requires number, got %s \n", optarg);
@@ -57,17 +56,21 @@ int main(int argc, char **argv){
 	abort();
       }
 
-  if (verbose){
-    fprintf(stdout,"x3 \n");
-    fprintf(stdout,"number of cores (-c): %d\n",conf->ncores); 
-    if (dbname) fprintf(stdout,"dbname              : %s \n",dbname);
-    if (tablename) fprintf(stdout,"tablename           : %s \n",tablename);
-    if (mapsql) fprintf(stdout,"mapsql:\n%s\n",mapsql);
-    if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
-  }
+  struct mu_DBCONF * conf = NULL;
 
-  if (mu_opendb(conf, dbname)==0)
+  if ( (conf = mu_opendb(dbname)) != NULL){
+    if (ncores)
+      conf->ncores = ncores;
+    if (verbose){
+      fprintf(stdout,"sqls \n");
+      fprintf(stdout,"number of cores (-c): %d\n",conf->ncores); 
+      if (dbname) fprintf(stdout,"dbname              : %s \n",dbname);
+      if (tablename) fprintf(stdout,"tablename           : %s \n",tablename);
+      if (mapsql) fprintf(stdout,"mapsql:\n%s\n",mapsql);
+      if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
+    }
     return mu_query(conf, mapsql, NULL, reducesql);
-  else
+  } else {
     fprintf(stderr, "error opening database %s \n",dbname);
+  }
 }

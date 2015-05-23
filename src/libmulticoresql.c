@@ -666,8 +666,12 @@ int mu_query3(struct mu_DBCONF *conf,
 }
 
 
-struct mu_DBCONF * mu_defaultconf(){
+struct mu_DBCONF * mu_opendb(const char *dbdir){
   typedef struct mu_DBCONF conftype;
+  if (dbdir==NULL){
+    fprintf(stderr,"%s\n","Fatal: mu_opendb received null dbdir pointer");
+    exit(EXIT_FAILURE);
+  }
   struct mu_DBCONF * c = mu_malloc(sizeof(conftype));
   c->db = NULL;
   c->otablename = "t";
@@ -679,35 +683,27 @@ struct mu_DBCONF * mu_defaultconf(){
   }
   c->shardc = 0;
   c->shardv = NULL;
-  return c;
-}
-
-int mu_opendb(struct mu_DBCONF * conf, const char *dbdir){
-  conf->isopen=0;
-  if (conf==NULL){
-    fprintf(stderr,"%s\n","Fatal: mu_opendb received null mu_DBCONF pointer");
-    exit(EXIT_FAILURE);
-  }
-  if (dbdir==NULL){
-    fprintf(stderr,"%s\n","Fatal: mu_opendb received null dbdir pointer");
-    exit(EXIT_FAILURE);
-  }
+  c->isopen=0;
   char *glob = mu_cat(dbdir,"/[0-9]*");
   wordexp_t p;
   int flags = WRDE_NOCMD; // do not run commands in shells like "$(evil)"
   int x = wordexp(glob, &p, flags);
   if (x==0){
-    conf->shardc = p.we_wordc;
-    // fprintf(stderr,"found %zd shards \n",conf->shardc);
-    conf->shardv = (const char **) p.we_wordv;
-    // mark conf as open if return values make sense
-    if ((conf->shardc>1) &&
-	(conf->shardv[0]) &&
-	(conf->shardv[conf->shardc]==NULL)
-	) conf->isopen=1;
+    c->shardc = p.we_wordc;
+    // fprintf(stderr,"found %zd shards \n",c->shardc);
+    c->shardv = (const char **) p.we_wordv;
+    // mark c as open if return values make sense
+    if ((c->shardc>1) &&
+	(c->shardv[0]) &&
+	(c->shardv[c->shardc]==NULL)
+	) c->isopen=1;
   }
   free(glob);
-  return (conf->isopen)? 0: -1;
+  if (c->isopen==0){
+    free(c);
+    return NULL;
+  } else
+    return c;
 }
 
 

@@ -47,11 +47,8 @@ struct mu_DBCONF {
   const char **shardv; /**< file names of sqlite3 database shards  */
 };
 
-/** generate default database conf */
-struct mu_DBCONF * mu_defaultconf();
-
 /** open database directory */
-int mu_opendb(struct mu_DBCONF * conf /**< [inout] database config */, 
+struct mu_DBCONF * mu_opendb(
 	      const char *dbdir     /**< [in] /path/to/directory of sqlite3 shards */
 	      );
 

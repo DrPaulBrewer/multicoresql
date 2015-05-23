@@ -13,8 +13,6 @@ int main(int argc, char **argv){
   char *reducesql = NULL; /* -r */
   int verbose = 0; /* -v */
 
-  struct mu_DBCONF *conf = mu_defaultconf();
-
   const char *getopt_options = ":d:t:m:r:v";
   int c;
 
@@ -51,8 +49,19 @@ int main(int argc, char **argv){
       default:
 	abort();
       }
-  
 
+    if (dbname==NULL){
+    fprintf(stderr,"%s\n","Error: 3sqls needs -d dbdir . Please tell 3sqls what database directory to use. Add -d dbdir to your command and try again");
+    exit(EXIT_FAILURE);
+  }
+  
+    struct mu_DBCONF * conf = mu_opendb(dbname);
+
+  if (!conf){
+    fprintf(stderr, "%s\n", "Could not set up database config for use");
+    exit(EXIT_FAILURE);
+  }
+  
   conf->ncores = 3;
 
   if (verbose){
@@ -64,18 +73,10 @@ int main(int argc, char **argv){
     if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
   }
 
-  if (dbname==NULL){
-    fprintf(stderr,"%s\n","Error: 3sqls needs -d dbdir . Please tell 3sqls what database directory to use. Add -d dbdir to your command and try again");
-    exit(EXIT_FAILURE);
-  }
-
   if (mapsql==NULL){
     fprintf(stderr,"%s\n", "Error: 3sqls needs -m mapsql .  Please tell 3sqls what sql statments to execute (map) across the databases in the database directory.  Add -m \"statement1; statement2; statementN;\" or -m \"$(cat m.sql)\" to your command and try again. ");
     exit(EXIT_FAILURE);
   }
   
-  if (mu_opendb(conf, dbname)==0)
-    return mu_query3(conf, mapsql, NULL, reducesql);
-  else
-    fprintf(stderr, "Error: Could not find the database directory at  %s .  Perhaps the name is misspelled, the database is somewhere else, or does not exist \n",dbname);
+  return mu_query3(conf, mapsql, NULL, reducesql);
 }
