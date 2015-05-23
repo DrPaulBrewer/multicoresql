@@ -76,7 +76,7 @@ int mu_fLoadExtensions(FILE *f);
 
  */
 
-struct mu_CONF {
+struct mu_DBCONF {
   const char *db; /**< directory containg sqlite3 shards */
   const char *otablename; /**< table name for collecting data from map query */ 
   int isopen; /**< flag indicating database has been opened */
@@ -86,15 +86,15 @@ struct mu_CONF {
 };
 
 /** generate default database conf */
-struct mu_CONF * mu_defaultconf();
+struct mu_DBCONF * mu_defaultconf();
 
 /** open database directory */
-int mu_opendb(struct mu_CONF * conf /**< [inout] database config */, 
+int mu_opendb(struct mu_DBCONF * conf /**< [inout] database config */, 
 	      const char *dbdir     /**< [in] /path/to/directory of sqlite3 shards */
 	      );
 
 /** create sqlite3 command file for map query processing */
-int mu_makeQueryCoreFile3(struct mu_CONF * conf /**< [in] database conf */, 
+int mu_makeQueryCoreFile3(struct mu_DBCONF * conf /**< [in] database conf */, 
 			 const char *fname /**< [in] filename for sqlite3 command, to be created */, 
 			 int getschema /**< [in] flag to cause autogeneration of table schema from map query output */, 
 			 int shardc /**< [in] count of shards to act upon */, 
@@ -103,15 +103,15 @@ int mu_makeQueryCoreFile3(struct mu_CONF * conf /**< [in] database conf */,
 			 );
 
 /** run a map query, and optionally a reduce query against the shard collection in conf */
-int mu_query3(struct mu_CONF *conf,
+int mu_query3(struct mu_DBCONF *conf,
 	  const char *mapsql,
 	  const char *createtablesql,
 	  const char *reducesql);
 
 
-int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql);
+int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql);
 
-int mu_query(struct mu_CONF *conf,
+int mu_query(struct mu_DBCONF *conf,
 	  const char *mapsql,
 	  const char *createtablesql,
 	  const char *reducesql);

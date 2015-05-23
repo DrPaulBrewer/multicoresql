@@ -554,7 +554,7 @@ int mu_fLoadExtensions(FILE *f){
 }
 
 
-int mu_makeQueryCoreFile3(struct mu_CONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
+int mu_makeQueryCoreFile3(struct mu_DBCONF * conf, const char *fname, int getschema, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 
@@ -599,7 +599,7 @@ int mu_makeQueryCoreFile3(struct mu_CONF * conf, const char *fname, int getschem
   
 }
 
-int mu_query3(struct mu_CONF *conf,
+int mu_query3(struct mu_DBCONF *conf,
 	      const char *mapsql,
 	      const char *createtablesql,
 	      const char *reducesql)
@@ -676,9 +676,9 @@ int mu_query3(struct mu_CONF *conf,
 }
 
 
-struct mu_CONF * mu_defaultconf(){
-  typedef struct mu_CONF conftype;
-  struct mu_CONF * c = mu_malloc(sizeof(conftype));
+struct mu_DBCONF * mu_defaultconf(){
+  typedef struct mu_DBCONF conftype;
+  struct mu_DBCONF * c = mu_malloc(sizeof(conftype));
   c->db = NULL;
   c->otablename = "t";
   c->isopen = 0;
@@ -692,10 +692,10 @@ struct mu_CONF * mu_defaultconf(){
   return c;
 }
 
-int mu_opendb(struct mu_CONF * conf, const char *dbdir){
+int mu_opendb(struct mu_DBCONF * conf, const char *dbdir){
   conf->isopen=0;
   if (conf==NULL){
-    fprintf(stderr,"%s\n","Fatal: mu_opendb received null mu_CONF pointer");
+    fprintf(stderr,"%s\n","Fatal: mu_opendb received null mu_DBCONF pointer");
     exit(EXIT_FAILURE);
   }
   if (dbdir==NULL){
@@ -722,7 +722,7 @@ int mu_opendb(struct mu_CONF * conf, const char *dbdir){
 
 
 
-int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
+int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
 
   int i;
 
@@ -766,7 +766,7 @@ int mu_makeQueryCoreFile(struct mu_CONF * conf, const char *fname, const char *c
   
 }
 
-int mu_query(struct mu_CONF *conf,
+int mu_query(struct mu_DBCONF *conf,
 	  const char *mapsql,
 	  const char *createtablesql,
 	  const char *reducesql)

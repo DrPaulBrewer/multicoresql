@@ -13,7 +13,7 @@ int main(int argc, char **argv){
   char *reducesql = NULL; /* -r */
   int verbose = 0; /* -v */
 
-  struct mu_CONF *conf = mu_defaultconf();
+  struct mu_DBCONF *conf = mu_defaultconf();
 
   const char *getopt_options = "c:d:t:m:r:v";
   int c;
