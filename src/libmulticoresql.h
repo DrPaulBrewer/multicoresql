@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <time.h>
 
 struct mu_SQLITE3_TASK {
   pid_t pid;
