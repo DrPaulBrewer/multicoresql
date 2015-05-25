@@ -6,6 +6,8 @@
 
 #include "libmulticoresql.h"
 
+
+
 const size_t mu_error_len = 8191;
 char mu_error_buf[mu_error_len+1];
 size_t mu_error_cursor = 0;
@@ -519,7 +521,17 @@ static unsigned int mu_get_random_seed(void){
 }
 
 int mu_create_shards_from_csv(const char *csvname, int skip, const char *schemaname, const char *tablename, const char *dbDir, int shardc){
+  long int max_open_files = sysconf(_SC_OPEN_MAX);
+  if (max_open_files>20){
+    max_open_files = max_open_files-10;
+    if (((long int) shardc) > max_open_files){
+      MU_WARN("mu_create_shards_from_csv received a request to create %d shards but the maximum number we can create is limited by the maximum number of simultaneously open files to approximately %ld \n", shardc, max_open_files);
+      return -1;
+    }
+  }
+
   srand(mu_get_random_seed());
+  
   const char *tmpdir = mu_create_temp_dir();
   if (NULL==tmpdir)
     return -1;
