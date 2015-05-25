@@ -1,12 +1,7 @@
 /* libmulticoreutils.c Copyright 2015 Paul Brewer
- * Economic and Financial Technology Consulting LLC
- * All rights reserved.
- * common routines for all versions of multicoresql
  */
 
 #include "libmulticoresql.h"
-
-
 
 const size_t mu_error_len = 8191;
 char mu_error_buf[mu_error_len+1];
@@ -22,7 +17,8 @@ const char *mu_error(){
 }
 
 #define MU_WARN(fmt, ...) \
-  if (mu_error_cursor < mu_error_len) mu_error_cursor += snprintf(mu_error_buf+mu_error_cursor, mu_error_len-mu_error_cursor, fmt, ##__VA_ARGS__ ); \
+  if (mu_error_cursor < mu_error_len) \
+    mu_error_cursor += snprintf(mu_error_buf+mu_error_cursor, mu_error_len-mu_error_cursor, fmt, ##__VA_ARGS__ ); \
 
 #define MU_WARN_OOM MU_WARN("%s\n", mu_error_oom);
 
@@ -30,7 +26,7 @@ const char *mu_error(){
 
 #define MU_WARN_IF_ERRNO if (errno) MU_WARN("%s\n", strerror(errno));
 
-static char * mu_cat(const char *s1, const char *s2){
+static char * mu_cat(const char *s1, const char *s2){ 
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   if (NULL==s) {
     MU_WARN_OOM;
@@ -1082,4 +1078,5 @@ int mu_query(struct mu_DBCONF *conf,
   }
   return 0;
 }
+
 
