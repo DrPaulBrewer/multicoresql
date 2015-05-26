@@ -1,4 +1,6 @@
-/* libmulticoreutils.c Copyright 2015 Paul Brewer
+/* libmulticoreutils.c 
+   Copyright 2015 Paul Brewer <drpaulbrewer@eaftc.com> Economic and Financial Technology Consulting LLC
+   All rights reserved.
  */
 
 #include "libmulticoresql.h"
@@ -481,7 +483,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
     if (ok_mu_shard_name(shardv[i]))
       fprintf(makeshardsf, shard_data_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
     else
-      fprintf(stderr,"Warning: mu_create_shards_from_sqlite_table() will ignore all data rows tagged with shardid %s .  Valid shard names may contain 0-9,a-z,A-Z,-,_, or . but may not begin with . \n", shardv[i]);
+      MU_WARN("Warning: mu_create_shards_from_sqlite_table() will ignore all data rows tagged with shardid %s .  Valid shard names may contain 0-9,a-z,A-Z,-,_, or . but may not begin with . \n", shardv[i]);
     if (errno){
       MU_WARN("%s\n", "While mu_create_shards_from_sqlite_table() was writing commands to a temporary file, an error occurred.");
       MU_WARN_IF_ERRNO;
