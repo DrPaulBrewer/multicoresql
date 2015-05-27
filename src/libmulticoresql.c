@@ -12,7 +12,9 @@ size_t mu_error_cursor = 0;
 const char *mu_error_oom =
   "Out of memory\n";
 const char *mu_error_fname =
-  "A serious file i/o error occurred. \nSome possibilities:  the file does not exist, permissions prevent access, or the drive is full.\nFile name: %s \n";
+  "A serious file i/o error occurred. \nSome possibilities:  the file does not exist, permissions prevent access, the drive is full, the file is corrupted.\nFile name: %s \n";
+const char *mu_error_fclose =
+  "A serious file i/o error occurred while trying to save and close a file.\nThe file may be corrupted.\nFile name: %s\n";
 
 const char *mu_error(){
   return mu_error_buf; 
@@ -28,6 +30,21 @@ const char *mu_error(){
 
 #define MU_WARN_IF_ERRNO if (errno) MU_WARN("%s\n", strerror(errno));
 
+#define MU_FPRINTF(fname, failval, f, fmt, ...)	\
+  if (fprintf(f, fmt, ##__VA_ARGS__ )){		\
+      MU_WARN_FNAME(fname);			\
+      MU_WARN_IF_ERRNO;				\
+      return failval;				\
+  }						\
+
+#define MU_FCLOSE_W(fname, failval, f)		\
+  errno=0; \
+  if (fclose(f)) {				\
+    MU_WARN(mu_error_fclose, fname);		\
+    MU_WARN_IF_ERRNO;				\
+    return failval;				\
+  }						\
+  
 static char * mu_cat(const char *s1, const char *s2){ 
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   if (NULL==s) {
@@ -157,6 +174,10 @@ static int mu_mark_temp_done(const char *dirname){
 
 static const char * mu_create_temp_dir(){
   char * template = mu_dup("/tmp/multicoresql-XXXXXX");
+  if (NULL==template){
+    MU_WARN_OOM;
+    return NULL;
+  }
   return (const char *) mkdtemp(template);
 }
 
@@ -432,8 +453,8 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   FILE *getcmdf = mu_fopen(getshardnames_task->iname, "w");
   if (NULL==getcmdf)
     return -1;
-  fprintf(getcmdf, shard_setup_fmt, tablename);
-  fclose(getcmdf);
+  MU_FPRINTF(getshardnames_task->iname, -1, getcmdf, shard_setup_fmt, tablename);
+  MU_FCLOSE_W(getshardnames_task->iname, -1, getcmdf);
   int runstatus=0;
   if (mu_start_task(getshardnames_task, "Fatal Error in mu_create_shards_from_sqlite_table() while trying to start sqlite3 for a read-only operation. Check that sqlite3 is properly installed on your system and if sqlite3 is not on the PATH set environment variable MULTICORE_SQLITE3_BIN \n"))
     return -1;
@@ -473,16 +494,11 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
     return -1;
   for(i=0;i<shardc;++i){
     if (ok_mu_shard_name(shardv[i]))
-      fprintf(makeshardsf, shard_data_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
+      MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
     else
       MU_WARN("Warning: mu_create_shards_from_sqlite_table() will ignore all data rows tagged with shardid %s .  Valid shard names may contain 0-9,a-z,A-Z,-,_, or . but may not begin with . \n", shardv[i]);
-    if (errno){
-      MU_WARN("%s\n", "While mu_create_shards_from_sqlite_table() was writing commands to a temporary file, an error occurred.");
-      MU_WARN_IF_ERRNO;
-      return -1;
-    }
   }
-  fclose(makeshardsf);
+  MU_FCLOSE_W(makeshards_task->iname, -1, makeshardsf);
   if (mu_start_task(makeshards_task, "mu_create_shards_from_sqlite_table() was unable to begin the creating the shard databases."))
     return -1;
   if (mu_finish_task(makeshards_task, "Fatal Error detected by mu_create_shards_from_sqlite_table() while running sqlite3 to create the shard databases.  You should probably delete the newly created shard databases and run this creation task again after reviewing the messages below and fixing any correctable errors. \n"))
@@ -498,14 +514,20 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
 
 static unsigned int mu_get_random_seed(void){
   errno = 0;
+  /* We would rather initialize from /dev/urandom */
+  /* But will use remainder of unix time by 7919 in case urandom does not work */
+  unsigned int backuprv = (unsigned int) (time(NULL) % 7919);
   int fd = open("/dev/urandom",O_RDONLY);
   if ((fd<0) || (errno)){
     errno = 0;
-    /* use remainder of time by 7919 in case urandom does not work */
-    return (unsigned int) (time(NULL) % 7919);
+    return backuprv;
   }
   unsigned int result = 0;
   read(fd, (void *) &result, sizeof(result));
+  if (errno){
+    errno=0;
+    return backuprv;
+  }
   close(fd);
   return result;
 }
@@ -589,8 +611,13 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
     ".import %s/%.3d %s\n";
   
   for(ishard=0;ishard<shardc;++ishard){
-    fclose(csvshards[ishard]);
-    errno = 0;
+    errno=0;
+    if (fclose(csvshards[ishard])){
+      MU_WARN("A serious file I/O error occurred writing shard file number %d\n", ishard);
+      MU_WARN_IF_ERRNO;
+      MU_WARN("This file is probably corrupt. The %s directory containing the csv shards may be deleted.\n", tmpdir);
+      return -1;
+    }
     fprintf(cmdf, cmdfmt, dbDir, ishard, schemaname, tmpdir, ishard, tablename);
     if (errno){
       MU_WARN("%s\n", "mu_create_shards_from_csv() detected an error while writing a command file to create the shard databases. ");
@@ -598,7 +625,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
       return -1;
     }
   }
-  fclose(cmdf);
+  MU_FCLOSE_W(createdb_task->iname, -1, cmdf);
   if (mu_start_task(createdb_task, "Fatal Error detected by mu_create_shards_from_csv() could not run sqlite3 to create shard databases.  No shard databases were created.  \n"))
     return -1;
   if (mu_finish_task(createdb_task, "Fatal Error detected by mu_create_shards_from_csv().  An Error occurred while running sqlite3 to create the shard databases.  You should delete any newly generated shard databases and run again after fixing any correctable errors. \n"))
@@ -671,45 +698,27 @@ static int mu_makeQueryCoreFile3(struct mu_DBCONF * conf, const char *fname, int
   if (NULL==qcfile)
     return -1;
 
-  fprintf(qcfile,
-	  qTemplate,
-	  conf->otablename);
+  MU_FPRINTF(fname, -1, qcfile, qTemplate, conf->otablename);
 
-  if (errno){
-    MU_WARN_FNAME(fname);
-    MU_WARN_IF_ERRNO;
-    return -1;
-  }
-  
   for(i=0;i<shardc;++i){
     if (shardv[i]){
-      fprintf(qcfile, ".open %s\n", shardv[i]);
-      if (errno){
-	MU_WARN_FNAME(fname);
-	MU_WARN_IF_ERRNO;
-	return -1;
-      }
+      MU_FPRINTF(fname, -1, qcfile, ".open %s\n", shardv[i]);
       if (mu_fLoadExtensions(qcfile))
 	return -1;
       if ((getschema) && (i==0)){
-	fprintf(qcfile,
-		qSchema,
-		conf->otablename,
-		mapsql,
-		conf->otablename,
-		conf->otablename);	
+	MU_FPRINTF(fname, -1, qcfile,
+		   qSchema,
+		   conf->otablename,
+		   mapsql,
+		   conf->otablename,
+		   conf->otablename);	
       } else {
-	fprintf(qcfile,qData,mapsql);
-      }
-      if (errno){
-	MU_WARN_FNAME(fname);
-	MU_WARN_IF_ERRNO;
-	return -1;
+	MU_FPRINTF(fname, -1, qcfile,qData,mapsql);
       }
     }
   }
 
-  fclose(qcfile);
+  MU_FCLOSE_W(fname, -1, qcfile);
   
   return 0;
   
@@ -750,13 +759,8 @@ int mu_query3(struct mu_DBCONF *conf,
     if (mu_fLoadExtensions(reducef))
       return -1;
     if (createtablesql)
-      fprintf(reducef, "%s\n", createtablesql);
-    fprintf(reducef, "%s\n", "BEGIN TRANSACTION;");
-    if (errno){
-      MU_WARN_FNAME(reducesql_task->iname);
-      MU_WARN_IF_ERRNO;
-      return -1;
-    }
+      MU_FPRINTF(reducesql_task->iname, -1, reducef, "%s\n", createtablesql);
+    MU_FPRINTF(reducesql_task->iname, -1, reducef, "%s\n", "BEGIN TRANSACTION;");
   }
   
   int shardc;
@@ -765,7 +769,7 @@ int mu_query3(struct mu_DBCONF *conf,
   /* create block macro */
 #define RUN_CORE(mycore) \
   if (reducesql) \
-    fprintf(reducef, ".read %s \n", mapsql_task[mycore]->oname); \
+    MU_FPRINTF(reducesql_task->iname, -1, reducef, ".read %s \n", mapsql_task[mycore]->oname); \
   if (errno){ \
     MU_WARN_FNAME(reducesql_task->iname); \
     MU_WARN_IF_ERRNO; \
@@ -797,14 +801,9 @@ int mu_query3(struct mu_DBCONF *conf,
   if (mu_finish_task(mapsql_task[2], errormsg)) return -1;
   
   if (reducesql){
-    fprintf(reducef,"%s\n", "COMMIT;");
-    fprintf(reducef, "%s\n", reducesql);
-    if (errno){
-      MU_WARN_FNAME(reducesql_task->iname);
-      MU_WARN_IF_ERRNO;
-      return -1;
-    }
-    fclose(reducef);
+    MU_FPRINTF(reducesql_task->iname, -1, reducef, "%s\n", "COMMIT;");
+    MU_FPRINTF(reducesql_task->iname, -1, reducef, "%s\n", reducesql);
+    MU_FCLOSE_W(reducesql_task->iname, -1, reducef);
     if (mu_start_task(reducesql_task, "Fatal error detected by mu_query3() while attempting to run sqlite3"))
       return -1;
     if (mu_finish_task(reducesql_task, "Fatal error detected by mu_query3() in reducesql task. "))
@@ -897,46 +896,31 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
 
   for(i=0;i<shardc;++i){
     if (shardv[i]){
-      fprintf(qcfile, ".open %s\n", shardv[i]);
-      if (errno){
-	MU_WARN_FNAME(fname);
-	MU_WARN_IF_ERRNO;
-	return -1;
-      }
+      MU_FPRINTF(fname, -1, qcfile, ".open %s\n", shardv[i]);
       if (mu_fLoadExtensions(qcfile))
 	return -1;
       if (is_select){
-	fprintf(qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
-	fprintf(qcfile, "%s;\n", "pragma resultdb.synchronous = 0");
+	MU_FPRINTF(fname, -1, qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
+	MU_FPRINTF(fname, -1, qcfile, "%s;\n", "pragma resultdb.synchronous = 0");
 	if (i==0){
-	  fprintf(qcfile,
+	  MU_FPRINTF(fname, -1, qcfile,
 		  "create table resultdb.%s as %s\n",
 		  conf->otablename,
 		  mapsql);	
 	} else {
-	  fprintf(qcfile,
+	  MU_FPRINTF(fname, -1, qcfile,
 		  "insert into resultdb.%s %s\n",
 		  conf->otablename,
 		  mapsql);
 	}
       } else {
 	/* mapsql is not a select statment */
-	fprintf(qcfile,
-		"%s\n",
-		mapsql);
-      }
-      if (errno){
-	MU_WARN_FNAME(fname);
-	MU_WARN_IF_ERRNO;
-	return -1;
+	MU_FPRINTF(fname, -1, qcfile, "%s\n", mapsql);
       }
     }
   }
-
-  fclose(qcfile);
-  
+  MU_FCLOSE_W(fname, -1, qcfile);  
   return 0;
-  
 }
 
 int mu_query(struct mu_DBCONF *conf,
@@ -974,18 +958,14 @@ int mu_query(struct mu_DBCONF *conf,
     return -1;
   
   FILE *reducef;
+  const char * rname = reducesql_task->iname;
   
   if (reducesql){
-    reducef = mu_fopen(reducesql_task->iname, "w");
+    reducef = mu_fopen(rname, "w");
     if (NULL==reducef)
       return -1;
-    fprintf(reducef, ".open %s/coredb.000\n", tmpdir);
-    fprintf(reducef, "%s;\n", "pragma synchronous = 0");
-    if (errno){
-      MU_WARN_FNAME(reducesql_task->iname);
-      MU_WARN_IF_ERRNO;
-      return -1;
-    }
+    MU_FPRINTF(rname, -1, reducef, ".open %s/coredb.000\n", tmpdir);
+    MU_FPRINTF(rname, -1, reducef, "%s;\n", "pragma synchronous = 0");
     if (mu_fLoadExtensions(reducef))
       return -1;
   }
@@ -1008,15 +988,9 @@ int mu_query(struct mu_DBCONF *conf,
       return -1;
     }
     if ((reducef) && (icore>0)){
-      fprintf(reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
-      fprintf(reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
-      fprintf(reducef, "detach database 'coredb%.3d';\n", icore);
-      if (errno){
-	MU_WARN("%s\n", "mu_query() An error occurred while writing command files for the reduce query.  The query was not executed. ");
-	MU_WARN_FNAME(reducesql_task->iname);
-	MU_WARN_IF_ERRNO;
-	return -1;
-      }
+      MU_FPRINTF(rname, -1, reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
+      MU_FPRINTF(rname, -1, reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
+      MU_FPRINTF(rname, -1, reducef, "detach database 'coredb%.3d';\n", icore);
     }
     int shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = mu_getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
@@ -1043,14 +1017,8 @@ int mu_query(struct mu_DBCONF *conf,
   
   if (reducesql){
     int reducer_status=0;
-    fprintf(reducef, "%s\n", reducesql);
-    fclose(reducef);
-    if (errno){
-      MU_WARN("%s\n", "mu_query() An error occurred while finishing writing command files for the reduce query.  The query was not executed. ");
-      MU_WARN_FNAME(reducesql_task->iname);
-      MU_WARN_IF_ERRNO;
-      return -1;
-    }
+    MU_FPRINTF(rname, -1, reducef, "%s\n", reducesql);
+    MU_FCLOSE_W(rname, -1, reducef);
     if (mu_start_task(reducesql_task, errormsg_on_start))
       return -1;
     if (mu_finish_task(reducesql_task, errormsg_on_finish_reduce))
