@@ -62,7 +62,7 @@ int main(int argc, char **argv){
   const char *toword[2] = {b,d};
   char buf[2048];
   while (fgets(buf,2047,stdin)){
-    char *out = strimreplacewords(buf, 2, fromword, toword);
+    char *out = replace_words(buf, 2, fromword, toword);
     printf("%s\n",out);
     free(out);
   }

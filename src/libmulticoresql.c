@@ -82,14 +82,6 @@ static int is_mu_temp(const char *fname){
   return ((fname) && (fname==strstr(fname,"/tmp/multicoresql-")));
 }
 
-static int is_mu_fatal(const char *msg){
-  return ((msg) &&
-	  ( (msg==strstr(msg,"fatal")) ||
-	    (msg==strstr(msg,"Fatal")) ||
-	    (msg==strstr(msg,"FATAL"))
-	    ));
-}
-
 static int mu_remove_temp_dir(const char *dirname){
   if (is_mu_temp(dirname))
     {
