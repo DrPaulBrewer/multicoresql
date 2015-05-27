@@ -12,7 +12,7 @@
 #include <argz.h>
 
 char *replace_words(const char *txt, int words, const char * const *forests, const char * const *laughter){
-  /* And its whispered by nerds after checking params to replace_words()  */
+  /* And its whispered by nerds checking params to replace_words()  */
   /* libc is space splitting txt into tokens. */
   /* A new string will dawn from malloc it's drawn */
   /* and forests will instead echo laughter */

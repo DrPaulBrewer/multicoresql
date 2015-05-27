@@ -20,35 +20,38 @@ const char *mu_error(){
   return mu_error_buf; 
 }
 
-#define MU_WARN(fmt, ...) \
+#define MU_WARN(fmt, ...) do { 	      \
   if (mu_error_cursor < mu_error_len) \
     mu_error_cursor += snprintf(mu_error_buf+mu_error_cursor, mu_error_len-mu_error_cursor, fmt, ##__VA_ARGS__ ); \
+} while(0)
 
-#define MU_WARN_OOM MU_WARN("%s\n", mu_error_oom);
+#define MU_WARN_OOM() MU_WARN("%s\n", mu_error_oom)
 
-#define MU_WARN_FNAME(fname) MU_WARN(mu_error_fname, fname);
+#define MU_WARN_FNAME(fname) MU_WARN(mu_error_fname, fname)
 
-#define MU_WARN_IF_ERRNO if (errno) MU_WARN("%s\n", strerror(errno));
+#define MU_WARN_IF_ERRNO() if (errno) MU_WARN("%s\n", strerror(errno))
 
-#define MU_FPRINTF(fname, failval, f, fmt, ...)	\
-  if (fprintf(f, fmt, ##__VA_ARGS__ )){		\
-      MU_WARN_FNAME(fname);			\
-      MU_WARN_IF_ERRNO;				\
-      return failval;				\
-  }						\
-
-#define MU_FCLOSE_W(fname, failval, f)		\
-  errno=0; \
+#define MU_FPRINTF(fname, failval, f, fmt, ...)	do { 	\
+  if (fprintf(f, fmt, ##__VA_ARGS__ )){			\
+    MU_WARN_FNAME(fname);				\
+    MU_WARN_IF_ERRNO();					\
+    return failval;					\
+  }							\
+} while(0)
+    
+#define MU_FCLOSE_W(fname, failval, f)	do {	\
+  errno=0;					\
   if (fclose(f)) {				\
     MU_WARN(mu_error_fclose, fname);		\
-    MU_WARN_IF_ERRNO;				\
+    MU_WARN_IF_ERRNO();				\
     return failval;				\
   }						\
-  
+} while(0)
+
 static char * mu_cat(const char *s1, const char *s2){ 
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   if (NULL==s) {
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   sprintf(s,"%s%s",s1,s2);
@@ -58,7 +61,7 @@ static char * mu_cat(const char *s1, const char *s2){
 static char * mu_dup(const char *s){
   char *x = strdup(s);
   if (NULL==s){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   return x;
@@ -69,7 +72,7 @@ static FILE* mu_fopen(const char *fname, const char *mode){
   FILE *f = fopen(fname, mode);
   if (NULL==f){
     MU_WARN_FNAME(fname);
-    MU_WARN_IF_ERRNO;
+    MU_WARN_IF_ERRNO();
   }
   return f;
 }
@@ -85,7 +88,7 @@ static const char ** mu_getcoreshardv(int i, int n, int c, const char ** v){
   int shardc = mu_getcoreshardc(i,n,c);
   const char ** result = malloc(shardc*sizeof(pchar));
   if (NULL == result){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   int idx;
@@ -114,7 +117,7 @@ static int mu_remove_temp_dir(const char *dirname){
       system(cmd);
       if (errno){
 	MU_WARN("There was an error while attempting to remove this directory: %s\n", dirname);
-	MU_WARN_IF_ERRNO;
+	MU_WARN_IF_ERRNO();
 	return -1;
       }
       return 0;
@@ -157,13 +160,13 @@ static int mu_mark_temp_done(const char *dirname){
     f = fopen(fname, "w");
     if (NULL==f){
       MU_WARN("mu_mark_temp_done() could not create file %s\n",fname);
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
     fclose(f);
     if (errno!=0){
       MU_WARN("mu_mark_temp_done(): could not close file %s\n",fname);
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
     return 0;
@@ -175,7 +178,7 @@ static int mu_mark_temp_done(const char *dirname){
 static const char * mu_create_temp_dir(){
   char * template = mu_dup("/tmp/multicoresql-XXXXXX");
   if (NULL==template){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   return (const char *) mkdtemp(template);
@@ -234,7 +237,7 @@ char * mu_read_small_file(const char *fname){
   
   char *buf = malloc(buflen);
   if (NULL==buf){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
 
@@ -249,7 +252,7 @@ char * mu_read_small_file(const char *fname){
   }
   
   if (errno){
-    MU_WARN_IF_ERRNO;
+    MU_WARN_IF_ERRNO();
     return NULL;
   }
 
@@ -265,7 +268,7 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   typedef struct mu_SQLITE3_TASK mu_SQLITE3_TASK_type;
   struct mu_SQLITE3_TASK *task = malloc(sizeof(mu_SQLITE3_TASK_type));
   if (NULL==task){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   task->pid=0;
@@ -280,7 +283,7 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   char *ename = malloc(bufsize);
   char *pname = malloc(bufsize);
   if ((NULL==iname) || (NULL==oname) || (NULL==ename) || (NULL==pname)){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   int ni = snprintf(iname, bufsize, fmt, dirname, taskname, "in", tasknum);
@@ -383,7 +386,7 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
     MU_WARN("%s\n", errormsg);
   }
   MU_WARN("mu_start_task() failed to fork and run %s\n", bin);
-  MU_WARN_IF_ERRNO;
+  MU_WARN_IF_ERRNO();
   return -1;
 }
 
@@ -478,7 +481,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   }
   shardv = malloc((1+shardc)*sizeof(pchar));
   if (NULL==shardv){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return -1;
   }
   for(i=0;i<shardc;++i){
@@ -552,7 +555,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
   if (mkdir(dbDir, 0700)){
     if (errno != EEXIST){
       MU_WARN("mu_create_shards_from_csv could not create requested directory %s\n", dbDir);
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
     errno=0;
@@ -594,7 +597,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
     fputs(csvbuf, csvshards[fnum]);
     if (errno){
       MU_WARN("%s\n", "An error occurred in mu_create_shards_from_csv() while writing data from the input csv file into a temporary csv file.");
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
   }
@@ -615,14 +618,14 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
     errno=0;
     if (fclose(csvshards[ishard])){
       MU_WARN("A serious file I/O error occurred writing shard file number %d\n", ishard);
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       MU_WARN("This file is probably corrupt. The %s directory containing the csv shards may be deleted.\n", tmpdir);
       return -1;
     }
     fprintf(cmdf, cmdfmt, dbDir, ishard, schemaname, tmpdir, ishard, tablename);
     if (errno){
       MU_WARN("%s\n", "mu_create_shards_from_csv() detected an error while writing a command file to create the shard databases. ");
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
   }
@@ -650,7 +653,7 @@ static const char *mu_sqlite3_extensions(void){
   size_t bufsize = 1024;
   exts = malloc(bufsize);
   if (NULL==exts){
-    MU_WARN_OOM;
+    MU_WARN_OOM();
     return NULL;
   }
   size_t offset = 0;
@@ -754,7 +757,7 @@ int mu_query3(struct mu_DBCONF *conf,
     reducef = mu_fopen(reducesql_task->iname, "w");
     if (NULL==reducef){
       MU_WARN_FNAME(reducesql_task->iname);
-      MU_WARN_IF_ERRNO;
+      MU_WARN_IF_ERRNO();
       return -1;
     }
     if (mu_fLoadExtensions(reducef))
@@ -773,7 +776,7 @@ int mu_query3(struct mu_DBCONF *conf,
     MU_FPRINTF(reducesql_task->iname, -1, reducef, ".read %s \n", mapsql_task[mycore]->oname); \
   if (errno){ \
     MU_WARN_FNAME(reducesql_task->iname); \
-    MU_WARN_IF_ERRNO; \
+    MU_WARN_IF_ERRNO(); \
   } \
   shardc = mu_getcoreshardc(mycore, conf->ncores, conf->shardc);		\
   shardv = (const char **) mu_getcoreshardv(mycore, conf->ncores, conf->shardc, conf->shardv); \
@@ -981,7 +984,7 @@ int mu_query(struct mu_DBCONF *conf,
   for(icore=0;icore<(conf->ncores);++icore){
     coredbname[icore] = malloc(coredbnamesize);
     if (NULL==coredbname[icore]){
-      MU_WARN_OOM ;
+      MU_WARN_OOM() ;
       return -1;
     }
     if (snprintf(coredbname[icore],coredbnamesize,"%s/coredb.%.3d",tmpdir,icore) > coredbnamesize){
@@ -1026,7 +1029,7 @@ int mu_query(struct mu_DBCONF *conf,
       return -1;
     char *cmd = mu_cat("cat ", reducesql_task->oname);
     if (NULL==cmd){
-      MU_WARN_OOM;
+      MU_WARN_OOM();
       return -1;
     }
     system(cmd);
