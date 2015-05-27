@@ -60,14 +60,6 @@ static char * mu_cat(const char *s1, const char *s2){
   return s;
 }
 
-static char * mu_dup(const char *s){
-  char *x = strdup(s);
-  if (NULL==s){
-    MU_WARN_OOM();
-    return NULL;
-  }
-  return x;
-}
 
 static FILE* mu_fopen(const char *fname, const char *mode){
   errno = 0;
@@ -178,7 +170,7 @@ static int mu_mark_temp_done(const char *dirname){
 }
 
 static const char * mu_create_temp_dir(){
-  char * template = mu_dup("/tmp/multicoresql-XXXXXX");
+  char * template = strdup("/tmp/multicoresql-XXXXXX");
   if (NULL==template){
     MU_WARN_OOM();
     return NULL;
@@ -275,8 +267,12 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   }
   task->pid=0;
   task->status=0;
-  task->dirname = mu_dup(dirname);
-  task->taskname = mu_dup(taskname);
+  task->dirname = strdup(dirname);
+  task->taskname = strdup(taskname);
+  if ((NULL==task->dirname) || (NULL==task->taskname)){
+    MU_WARN_OOM();
+    return NULL;
+  }
   task->tasknum = tasknum;
   const char *fmt = "%s/%s.%s.%.3d";
   size_t bufsize = 1+snprintf(NULL,0,fmt,dirname,taskname,"progress", tasknum);
@@ -659,9 +655,11 @@ static const char *mu_sqlite3_extensions(void){
     return NULL;
   }
   size_t offset = 0;
-  char *e = mu_dup(extensions);
-  if (NULL==e)
+  char *e = strdup(extensions);
+  if (NULL==e){
+    MU_WARN_OOM();
     return NULL;
+  }
   char *tok = strtok(e, " ");
   errno = 0;
   while (tok && (offset<bufsize) && (!errno)){
