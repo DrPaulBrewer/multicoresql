@@ -21,8 +21,10 @@ const char *mu_error(){
 }
 
 #define MU_WARN(fmt, ...) do { 	      \
+  int save_errno = errno;	      \
   if (mu_error_cursor < mu_error_len) \
     mu_error_cursor += snprintf(mu_error_buf+mu_error_cursor, mu_error_len-mu_error_cursor, fmt, ##__VA_ARGS__ ); \
+  errno = save_errno;\
 } while(0)
 
 #define MU_WARN_OOM() MU_WARN("%s\n", mu_error_oom)
