@@ -428,17 +428,17 @@ static void mu_free_task(struct mu_SQLITE3_TASK *task){
 
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir){
   typedef const char * pchar;
-  const char *shard_setup_fmt = 
+  const char *shard_setup_fmt =
+    ".open %s\n"
     "create temporary table shardids as select distinct shardid from %s where (shardid is not null) and (shardid!='');\n"
     "select count(*) from shardids;\n"
     "select shardid from shardids order by shardid;\n";   
   int i;
   int shardc;
   char **shardv;
-  char * const dbname2 = mu_dup(dbname);
-  if (NULL==dbname2)
-    return -1;
-  const char *shard_data_fmt =
+  const char *shard_data_init_fmt =
+    ".open %s\n";
+  const char *shard_data_each_fmt =
     "attach database '%s/%s' as 'shard';\n"
     "pragma synchronous = 0;\n"
     "create table shard.%s as select * from %s where shardid='%s';\n"
@@ -453,7 +453,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   FILE *getcmdf = mu_fopen(getshardnames_task->iname, "w");
   if (NULL==getcmdf)
     return -1;
-  MU_FPRINTF(getshardnames_task->iname, -1, getcmdf, shard_setup_fmt, tablename);
+  MU_FPRINTF(getshardnames_task->iname, -1, getcmdf, shard_setup_fmt, dbname, tablename);
   MU_FCLOSE_W(getshardnames_task->iname, -1, getcmdf);
   int runstatus=0;
   if (mu_start_task(getshardnames_task, "Fatal Error in mu_create_shards_from_sqlite_table() while trying to start sqlite3 for a read-only operation. Check that sqlite3 is properly installed on your system and if sqlite3 is not on the PATH set environment variable MULTICORE_SQLITE3_BIN \n"))
@@ -492,9 +492,10 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   FILE *makeshardsf = mu_fopen(makeshards_task->iname, "w");
   if (NULL==makeshardsf)
     return -1;
+  MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_init_fmt, dbname);
   for(i=0;i<shardc;++i){
     if (ok_mu_shard_name(shardv[i])){
-      MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
+      MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_each_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
     } else {
       MU_WARN("Warning: mu_create_shards_from_sqlite_table() will ignore all data rows tagged with shardid %s .  Valid shard names may contain 0-9,a-z,A-Z,-,_, or . but may not begin with . \n", shardv[i]);
     }
@@ -507,7 +508,6 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   mu_free_task(getshardnames_task);
   mu_free_task(makeshards_task);
   free((void *) cmdout);
-  free((void *) dbname2);
   mu_remove_temp_dir(tmpdir);
   free((void *) tmpdir);
   return 0;
