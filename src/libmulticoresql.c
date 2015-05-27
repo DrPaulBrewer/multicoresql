@@ -493,10 +493,11 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   if (NULL==makeshardsf)
     return -1;
   for(i=0;i<shardc;++i){
-    if (ok_mu_shard_name(shardv[i]))
+    if (ok_mu_shard_name(shardv[i])){
       MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
-    else
+    } else {
       MU_WARN("Warning: mu_create_shards_from_sqlite_table() will ignore all data rows tagged with shardid %s .  Valid shard names may contain 0-9,a-z,A-Z,-,_, or . but may not begin with . \n", shardv[i]);
+    }
   }
   MU_FCLOSE_W(makeshards_task->iname, -1, makeshardsf);
   if (mu_start_task(makeshards_task, "mu_create_shards_from_sqlite_table() was unable to begin the creating the shard databases."))
