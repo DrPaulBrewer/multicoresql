@@ -693,6 +693,7 @@ static int mu_makeQueryCoreFile3(struct mu_DBCONF * conf, const char *fname, int
   int i;
 
   const char *qTemplate =
+    ".bail on\n"
     ".mode insert %s\n" // output table name
     ;
 
@@ -766,6 +767,7 @@ int mu_query3(struct mu_DBCONF *conf,
       MU_WARN_IF_ERRNO();
       return -1;
     }
+    MU_FPRINTF(reducesql_task->iname, -1, reducef, "%s\n", ".bail on");
     if (mu_fLoadExtensions(reducef))
       return -1;
     if (createtablesql)
@@ -907,6 +909,7 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
   for(i=0;i<shardc;++i){
     if (shardv[i]){
       MU_FPRINTF(fname, -1, qcfile, ".open %s\n", shardv[i]);
+      MU_FPRINTF(fname, -1, qcfile, "%s\n",".bail on");
       if (mu_fLoadExtensions(qcfile))
 	return -1;
       if (is_select){
@@ -975,6 +978,7 @@ int mu_query(struct mu_DBCONF *conf,
     if (NULL==reducef)
       return -1;
     MU_FPRINTF(rname, -1, reducef, ".open %s/coredb.000\n", tmpdir);
+    MU_FPRINTF(rname, -1, reducef, "%s\n",".bail on");
     MU_FPRINTF(rname, -1, reducef, "%s;\n", "pragma synchronous = 0");
     if (mu_fLoadExtensions(reducef))
       return -1;

@@ -1,6 +1,5 @@
 MulticoreSQL todo list
 
-QH .bail on
 QH .headers on
 QH .mode ascii|csv|column|html|insert|line|list|tabs|tcl
 QH return result text
@@ -10,8 +9,12 @@ H Usage examples
 H python wrapper and unit tests
 
 H create struct for multivariable query output
-
 H create getters for struct
+
+M Distinguish dbdir from shard list to allow specificity about how to run queries
+   shards mod J == K ?
+   specific shard list 
+   randomly chosen shard
 
 M Template system for internals based on replace_words
 
@@ -30,6 +33,7 @@ L comment libmulticoresql.c file
 ---QH change default collect table name: from  t --> maptable
 ---QH print errors from minor programs using custom mu_error_string
 ---QH mu_error_clear()
+---QH .bail on 
 
 
 
