@@ -834,7 +834,7 @@ struct mu_DBCONF * mu_opendb(const char *dbdir){
   if (NULL==c)
     return NULL;
   c->db = NULL;
-  c->otablename = "t";
+  c->otablename = "maptable";
   c->isopen = 0;
   c->ncores = (int) sysconf(_SC_NPROCESSORS_ONLN);
   if ((c->ncores<=0) || (c->ncores>255)){
