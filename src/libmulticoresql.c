@@ -16,8 +16,8 @@ const char *mu_error_fname =
 const char *mu_error_fclose =
   "A serious file i/o error occurred while trying to save and close a file.\nThe file may be corrupted.\nFile name: %s\n";
 
-const char *mu_error(){
-  return mu_error_buf; 
+const char *mu_error_string(){
+  return ((mu_error_cursor)? mu_error_buf: NULL); 
 }
 
 #define MU_WARN(fmt, ...) do { 	      \

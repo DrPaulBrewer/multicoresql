@@ -29,6 +29,8 @@ struct mu_SQLITE3_TASK {
   const char *pname;
 };
 
+const char *mu_error_string();
+
 char * mu_read_small_file(const char *fname);
 
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir);

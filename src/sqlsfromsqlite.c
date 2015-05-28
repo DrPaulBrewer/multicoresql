@@ -6,6 +6,9 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
 
-  return mu_create_shards_from_sqlite_table(argv[1], argv[2], argv[3]);
-  
+  int status =  mu_create_shards_from_sqlite_table(argv[1], argv[2], argv[3]);
+  const char *err = mu_error_string();
+  if (err)
+    fputs(err,stderr);
+  return status;
 }

@@ -78,5 +78,8 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
   
-  return mu_query3(conf, mapsql, NULL, reducesql);
+  mu_query3(conf, mapsql, NULL, reducesql);
+  const char *errors = mu_error_string();
+  if (errors)
+    fputs(errors, stderr);
 }

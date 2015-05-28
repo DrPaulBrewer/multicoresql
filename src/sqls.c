@@ -69,7 +69,11 @@ int main(int argc, char **argv){
       if (mapsql) fprintf(stdout,"mapsql:\n%s\n",mapsql);
       if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
     }
-    return mu_query(conf, mapsql, NULL, reducesql);
+    int qstatus =  mu_query(conf, mapsql, NULL, reducesql);
+    const char *qerror = mu_error_string();
+    if (qerror)
+      fputs(qerror, stderr);
+    return qstatus;
   } else {
     fprintf(stderr, "error opening database %s \n",dbname);
   }

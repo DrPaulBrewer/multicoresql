@@ -1,6 +1,11 @@
 MulticoreSQL todo list
 
-QH print errors from minor programs using custom mu_error_string
+QH mu_error_clear()
+
+QH .bail on
+QH .headers on
+QH .mode ascii|csv|column|html|insert|line|list|tabs|tcl
+QH return result text
 
 H Usage examples
 
@@ -25,5 +30,8 @@ L comment libmulticoresql.c file
 
 
 ---QH change default collect table name: from  t --> maptable
+---QH print errors from minor programs using custom mu_error_string
+
+
 
 ?M query options struct?  make DBconf->otablename a query option?

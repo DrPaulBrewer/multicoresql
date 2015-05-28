@@ -45,6 +45,9 @@ int main(int argc, char **argv){
   if (shardcount<3)
     shardcount=3;
   
-  mu_create_shards_from_csv(csvname,skiplines,schemaname,tablename,dbDir,shardcount);
-  exit(EXIT_SUCCESS);
+  int status = mu_create_shards_from_csv(csvname,skiplines,schemaname,tablename,dbDir,shardcount);
+  const char *err = mu_error_string();
+  if (err)
+    fputs(err,stderr);
+  return status;
 }
