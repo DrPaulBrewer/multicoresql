@@ -38,11 +38,13 @@ void mu_error_clear(){
 #define MU_WARN_IF_ERRNO() if (errno) MU_WARN("%s\n", strerror(errno))
 
 #define MU_FPRINTF(fname, failval, f, fmt, ...)	do { 	\
-  if (fprintf(f, fmt, ##__VA_ARGS__ )){			\
-    MU_WARN_FNAME(fname);				\
-    MU_WARN_IF_ERRNO();					\
-    return failval;					\
-  }							\
+    errno=0;						\
+    fprintf(f, fmt, ##__VA_ARGS__ );			\
+    if (errno){						\
+      MU_WARN_FNAME(fname);				\
+      MU_WARN("%s\n", strerror(errno));			\
+      return failval;					\
+    }							\
 } while(0)
     
 #define MU_FCLOSE_W(fname, failval, f)	do {	\
