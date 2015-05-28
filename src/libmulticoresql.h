@@ -30,6 +30,7 @@ struct mu_SQLITE3_TASK {
 };
 
 const char *mu_error_string();
+void mu_error_clear();
 
 char * mu_read_small_file(const char *fname);
 

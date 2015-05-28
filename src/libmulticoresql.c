@@ -20,6 +20,10 @@ const char *mu_error_string(){
   return ((mu_error_cursor)? mu_error_buf: NULL); 
 }
 
+void mu_error_clear(){
+  mu_error_cursor = 0;
+}
+
 #define MU_WARN(fmt, ...) do { 	      \
   int save_errno = errno;	      \
   if (mu_error_cursor < mu_error_len) \
