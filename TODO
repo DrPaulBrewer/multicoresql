@@ -1,0 +1,28 @@
+MulticoreSQL todo list
+
+QH change default collect table name: from  t --> maptable
+
+QH print errors from minor programs using custom mu_error_string
+
+H Usage examples
+
+H python wrapper and unit tests
+
+H create struct for multivariable query output
+
+H create getters for struct
+
+M Template system for internals based on replace_words
+
+M split query into phases for async use
+
+M document libmulticoresql.h file
+
+M move minor programs into libmulticoresql.c and eliminate
+getopt duplication
+
+L split all error strings to top of file in libmulticoresql.c
+
+L comment libmulticoresql.c file
+
+
