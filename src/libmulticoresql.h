@@ -57,13 +57,13 @@ struct mu_DBCONF * mu_opendb(
 	      );
 
 /** run a map query, and optionally a reduce query against the shard collection in conf */
-int mu_query3(struct mu_DBCONF *conf,
+char * mu_query3(struct mu_DBCONF *conf,
 	  const char *mapsql,
 	  const char *createtablesql,
 	  const char *reducesql);
 
 
-int mu_query(struct mu_DBCONF *conf,
+char * mu_query(struct mu_DBCONF *conf,
 	  const char *mapsql,
 	  const char *createtablesql,
 	  const char *reducesql);

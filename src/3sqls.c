@@ -78,7 +78,9 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
   
-  mu_query3(conf, mapsql, NULL, reducesql);
+  char * result = mu_query3(conf, mapsql, NULL, reducesql);
+  if (result)
+    fputs(result, stdout);
   const char *errors = mu_error_string();
   if (errors)
     fputs(errors, stderr);
