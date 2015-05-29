@@ -1,14 +1,10 @@
 MulticoreSQL todo list
 
-QH .headers on
-QH .mode ascii|csv|column|html|insert|line|list|tabs|tcl
+QH In all sql inputs, allow either sql input,  filename.sql or filename.sqlite
 
 H Usage examples
 
 H python wrapper and unit tests
-
-H create struct for multivariable query output
-H create getters for struct
 
 M Distinguish dbdir from shard list to allow specificity about how to run queries
    shards mod J == K ?
@@ -40,3 +36,16 @@ COMPLETED
 
 SUGGESTS
 ?M query options struct?  make DBconf->otablename a query option?
+
+
+TABLED
+
+Already supported in explicit reducesql.  
+QH .headers on
+QH .mode ascii|csv|column|html|insert|line|list|tabs|tcl
+
+Not necessary.  Query output as char *, error string and tmp directory
+should be sufficient for most users.
+H create struct for multivariable query output
+H create getters for struct
+
