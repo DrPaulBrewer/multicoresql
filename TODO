@@ -30,7 +30,10 @@ COMPLETED
 ---QH print errors from minor programs using custom mu_error_string
 ---QH mu_error_clear()
 ---QH .bail on 
----QH return result text
+---QH return query result text
+---QH Remove PRAGMA synchronous 0 -- risky with no obvious improvement
+
+
 
 
 

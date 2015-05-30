@@ -447,7 +447,6 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
     ".open %s\n";
   const char *shard_data_each_fmt =
     "attach database '%s/%s' as 'shard';\n"
-    "pragma synchronous = 0;\n"
     "create table shard.%s as select * from %s where shardid='%s';\n"
     "detach database shard;\n";
   const char *tmpdir = mu_create_temp_dir();
@@ -614,7 +613,6 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *scheman
     return -1;
   const char *cmdfmt = 
     ".open %s/%.3d\n"
-    "pragma synchronous = 0;\n"
     ".read %s\n"
     ".import %s/%.3d %s\n";
   
@@ -912,7 +910,6 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
 	return -1;
       if (is_select){
 	MU_FPRINTF(fname, -1, qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
-	MU_FPRINTF(fname, -1, qcfile, "%s;\n", "pragma resultdb.synchronous = 0");
 	if (i==0){
 	  MU_FPRINTF(fname, -1, qcfile,
 		  "create table resultdb.%s as %s\n",
@@ -977,7 +974,6 @@ char * mu_query(struct mu_DBCONF *conf,
       return NULL;
     MU_FPRINTF(rname, NULL, reducef, ".open %s/coredb.000\n", tmpdir);
     MU_FPRINTF(rname, NULL, reducef, "%s\n",".bail on");
-    MU_FPRINTF(rname, NULL, reducef, "%s;\n", "pragma synchronous = 0");
     if (mu_fLoadExtensions(reducef))
       return NULL;
   }
