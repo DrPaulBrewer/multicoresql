@@ -56,16 +56,21 @@ struct mu_DBCONF * mu_opendb(
 	      const char *dbdir     /**< [in] /path/to/directory of sqlite3 shards */
 	      );
 
+struct mu_QUERY {
+  const char *mapsql; /**< REQUIRED sqlite command(s)/statement(s) to map over shards */
+  const char *createtablesql; /**< OPTIONAL sqlite CREATE TABLE statement to create the table format used to hold collected mapsql results.  You should name this table "maptable". i.e. "create table maptable ( blah, blah, blah );"  */
+  const char *reducesql; /**< OPTIONAL sqlite statements to apply against the results collected in maptable from running the mapsql statement in all shards.  Necessary for reducing the collected mapsql results down to a final answer.  */
+};
+
+/** reads sql commands from strings or files and packs into a new query object */
+struct mu_QUERY  * mu_create_query(const char *mapsql_or_fname,
+				 const char *createtablesql_or_fname,
+				 const char *reducesql_or_fname);
+
 /** run a map query, and optionally a reduce query against the shard collection in conf */
-char * mu_query3(struct mu_DBCONF *conf,
-	  const char *mapsql,
-	  const char *createtablesql,
-	  const char *reducesql);
+char * mu_run_query3(struct mu_DBCONF *conf, struct mu_QUERY *q);
 
 
-char * mu_query(struct mu_DBCONF *conf,
-	  const char *mapsql,
-	  const char *createtablesql,
-	  const char *reducesql);
+char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q);
 
 #endif /* LIBMULTICORESQL_H */

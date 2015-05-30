@@ -1,7 +1,5 @@
 MulticoreSQL todo list
 
-QH In all sql inputs, allow either sql input,  filename.sql or filename.sqlite
-
 H Usage examples
 
 H python wrapper and unit tests
@@ -32,6 +30,11 @@ COMPLETED
 ---QH .bail on 
 ---QH return query result text
 ---QH Remove PRAGMA synchronous 0 -- risky with no obvious improvement
+---QH In all sql inputs, allow either sql string or sql filename as input
+     (to stay at least somewhat DRY, necessitated create_query()/run_query()
+     split in functionality and addition of a new struct mu_QUERY )
+
+
 
 
 

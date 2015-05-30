@@ -69,7 +69,9 @@ int main(int argc, char **argv){
       if (mapsql) fprintf(stdout,"mapsql:\n%s\n",mapsql);
       if (reducesql) fprintf(stdout,"reducesql:\n%s\n",reducesql);
     }
-    char *qresult =  mu_query(conf, mapsql, NULL, reducesql);
+    char *qresult =  mu_run_query(conf,
+				  mu_create_query(mapsql, NULL, reducesql)
+				  );
     if (qresult)
       fputs(qresult, stdout);
     const char *qerror = mu_error_string();

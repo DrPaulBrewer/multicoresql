@@ -27,14 +27,6 @@ int main(int argc, char **argv){
   if (skiplines < 0)
     skiplines = -skiplines;
   const char *schemaname = argv[3];
-  const char *schema = mu_read_small_file(schemaname);
-  if (schema==NULL){
-    fprintf(stderr,"Fatal: sqlsfromcsv While reading from schema file %s an error was encountered.\n",schemaname);
-    if (errno>0)
-      perror(NULL);
-    exit(EXIT_FAILURE);
-  }
-  free((void *) schema);
   const char *tablename = argv[4];
   const char *dbDir = argv[5];
   shardcount = (int) get_long_int_or_die(argv[6],
