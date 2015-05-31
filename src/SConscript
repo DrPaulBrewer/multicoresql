@@ -1,7 +1,13 @@
 env = Environment(CC='clang-3.6', LIBPATH = '.', CFLAGS='-fPIC')
-env.SharedLibrary('multicoresql', 'libmulticoresql.c')
-env.Program('3sqls.c', LIBS=['multicoresql'])
-env.Program('sqls.c', LIBS=['multicoresql'])
-env.Program(['sqlsfromcsv.c'], LIBS=['multicoresql'])
-env.Program(['sqlsfromsqlite.c'], LIBS=['multicoresql'])
-env.Program(['replace.c'])
+lib = env.SharedLibrary('multicoresql', 'libmulticoresql.c')
+programs = [
+	 env.Program('3sqls.c', LIBS=['multicoresql']),
+	 env.Program('sqls.c', LIBS=['multicoresql']),
+	 env.Program(['sqlsfromcsv.c'], LIBS=['multicoresql']),
+	 env.Program(['sqlsfromsqlite.c'], LIBS=['multicoresql']),
+]	 
+# env.Program(['replace.c'])
+env.Install(dir="/usr/local/lib", source=lib)
+env.Install(dir="/usr/local/bin", source=programs)
+installdirs = ['/usr/local/lib','/usr/local/bin']
+env.Alias('install', installdirs)

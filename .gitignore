@@ -4,3 +4,4 @@
 .scons*
 build/*
 doc/*
+tests/mega/*
