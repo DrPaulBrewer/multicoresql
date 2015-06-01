@@ -38,24 +38,26 @@ void mu_error_clear(){
 
 #define MU_WARN_IF_ERRNO() if (errno) MU_WARN("%s\n", strerror(errno))
 
-#define MU_FPRINTF(fname, failval, f, fmt, ...)	do { 	\
-    errno=0;						\
-    fprintf(f, fmt, ##__VA_ARGS__ );			\
-    if (errno){						\
+#define MU_FPRINTF(fname, failval, f, fmt, ...) 	\
+    if (fprintf(f, fmt, ##__VA_ARGS__ )<0){		\
       MU_WARN_FNAME(fname);				\
       MU_WARN("%s\n", strerror(errno));			\
       return failval;					\
-    }							\
-} while(0)
+    }
+
     
-#define MU_FCLOSE_W(fname, failval, f)	do {	\
-  errno=0;					\
+#define MU_FCLOSE_W(fname, failval, f)		\
   if (fclose(f)) {				\
     MU_WARN(mu_error_fclose, fname);		\
     MU_WARN_IF_ERRNO();				\
     return failval;				\
-  }						\
-} while(0)
+  } 
+
+#define MU_PRINTBUF(fmt, ...) \
+  if (cursor<bufsize) \
+    cursor+=snprintf(buf+cursor,bufsize-cursor,fmt,##__VA_ARGS__)
+
+
 
 static char * mu_cat(const char *s1, const char *s2){ 
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
@@ -1047,37 +1049,61 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
     MU_WARN("%s\n", "mu_makeQueryCoreFile detected one or more invalid or NULL required parameters");
     return -1;
   }
-  
-  FILE * qcfile = mu_fopen(fname,"w");
-  if (NULL==qcfile)
-    return -1;
 
+  size_t bufsize = (1024+strlen(mapsql))*shardc+1024;
+  size_t cursor = 0;
+  char *buf = malloc(bufsize);
+  if (NULL==buf){
+    MU_WARN_OOM();
+    return -1;
+  }
+
+  
   int is_select = is_mu_select(mapsql);
+
+  const char *exts = mu_sqlite3_extensions();
 
   for(i=0;i<shardc;++i){
     if (shardv[i]){
-      MU_FPRINTF(fname, -1, qcfile, ".open %s\n", shardv[i]);
-      MU_FPRINTF(fname, -1, qcfile, "%s\n",".bail on");
-      if (mu_fLoadExtensions(qcfile))
-	return -1;
+      MU_PRINTBUF(".open %s\n", shardv[i]);
+      MU_PRINTBUF("%s\n",".bail on");
+      if (exts)
+	MU_PRINTBUF("%s\n", exts);
       if (is_select){
-	MU_FPRINTF(fname, -1, qcfile, "attach database '%s' as 'resultdb';\n", coredbname); 
+	MU_PRINTBUF("attach database '%s' as 'resultdb';\n", coredbname); 
 	if (i==0){
-	  MU_FPRINTF(fname, -1, qcfile,
-		  "create table resultdb.%s as %s\n",
+	  MU_PRINTBUF("create table resultdb.%s as %s\n",
 		  conf->otablename,
 		  mapsql);	
 	} else {
-	  MU_FPRINTF(fname, -1, qcfile,
-		  "insert into resultdb.%s %s\n",
+	  MU_PRINTBUF("insert into resultdb.%s %s\n",
 		  conf->otablename,
 		  mapsql);
 	}
       } else {
 	/* mapsql is not a select statment */
-	MU_FPRINTF(fname, -1, qcfile, "%s\n", mapsql);
+	MU_PRINTBUF("%s\n", mapsql);
       }
     }
+  }
+
+  if (cursor>bufsize){
+    free(buf);
+    MU_WARN("%s\n", "Oops! A buffer overflow was prevented while constructing the command files derived from the map query.  Unfortunately that buffer ran out of space.  The query was not run.");
+    return -1;
+  }
+  
+  FILE * qcfile = mu_fopen(fname,"w");
+  if (NULL==qcfile){
+    free(buf);
+    return -1;
+  }
+  int bytes_written = fputs(buf, qcfile);
+  free(buf);
+  if (bytes_written<0){
+    MU_WARN_FNAME(fname);
+    MU_WARN_IF_ERRNO();
+    return -1;
   }
   MU_FCLOSE_W(fname, -1, qcfile);  
   return 0;
