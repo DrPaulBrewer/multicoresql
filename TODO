@@ -1,5 +1,9 @@
 MulticoreSQL todo list
 
+H Code Review: Code shall not check errno for errors, but instead
+check the return code of the involved function appropriately.
+-- done in libmulticoresql.c -- TODO in utilities
+
 H Usage examples
 
 H python wrapper and unit tests

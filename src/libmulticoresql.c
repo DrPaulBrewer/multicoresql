@@ -57,8 +57,6 @@ void mu_error_clear(){
   if (cursor<bufsize) \
     cursor+=snprintf(buf+cursor,bufsize-cursor,fmt,##__VA_ARGS__)
 
-
-
 static char * mu_cat(const char *s1, const char *s2){ 
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   if (NULL==s) {
@@ -70,7 +68,6 @@ static char * mu_cat(const char *s1, const char *s2){
 }
 
 static FILE* mu_fopen(const char *fname, const char *mode){
-  errno = 0;
   FILE *f = fopen(fname, mode);
   if (NULL==f){
     MU_WARN_FNAME(fname);
@@ -115,9 +112,8 @@ static int mu_remove_temp_dir(const char *dirname){
 	MU_WARN("There was an unusual error while attempting to remove a directory\n The command name was too long.  \n Here is the partial command, which was not run:\n%s\n", cmd);
 	return -1;
       }
-      errno = 0;
-      system(cmd);
-      if (errno){
+      int rm_status = system(cmd);
+      if (rm_status){
 	MU_WARN("There was an error while attempting to remove this directory: %s\n", dirname);
 	MU_WARN_IF_ERRNO();
 	return -1;
@@ -132,7 +128,6 @@ static int exists_mu_temp_file(const char *fname){
   FILE *f;
   int result;
   if (is_mu_temp(fname)){
-    errno = 0;
     f = fopen(fname, "r");
     if (f==NULL)
       return 0;
@@ -155,22 +150,19 @@ static int exists_mu_temp_done(const char *dirname){
 static int mu_mark_temp_done(const char *dirname){
   FILE *f;
   if (is_mu_temp(dirname)){
-    size_t bufsize = 255;
+    size_t bufsize = 1024;
     char fname[bufsize];
-    snprintf(fname,bufsize,"%s/DONE",dirname);
-    errno = 0;
+    if (snprintf(fname,bufsize,"%s/DONE",dirname)>bufsize){
+      MU_WARN("%s\n", "An unusual error occurred in mu_mark_temp_done().");
+      return -1;
+    }
     f = fopen(fname, "w");
     if (NULL==f){
       MU_WARN("mu_mark_temp_done() could not create file %s\n",fname);
       MU_WARN_IF_ERRNO();
       return -1;
     }
-    fclose(f);
-    if (errno!=0){
-      MU_WARN("mu_mark_temp_done(): could not close file %s\n",fname);
-      MU_WARN_IF_ERRNO();
-      return -1;
-    }
+    MU_FCLOSE_W(fname, -1, f);
     return 0;
   }
   MU_WARN("mu_mark_temp_done(): %s not recognized as a mu temp directory name. No action taken. \n", dirname);
@@ -208,7 +200,6 @@ static int ok_mu_shard_name(const char *name){
 }
 
 char * mu_read_small_file(const char *fname){
-  errno = 0;
   struct stat fstats;
 
   if (NULL==fname)
@@ -217,12 +208,9 @@ char * mu_read_small_file(const char *fname){
   if (stat(fname, &fstats)!=0)
     return NULL;
   
-  if (errno!=0)
-    return NULL;
-
   FILE *f = fopen(fname,"r");
   
-  if (errno!=0)
+  if (NULL==f)
     return NULL;
 
   size_t buflen = (size_t) fstats.st_size + 1;
@@ -233,7 +221,6 @@ char * mu_read_small_file(const char *fname){
   size_t buflimit = (size_t) (100*1024*1024);  // 100MB self-imposed limit
 
   if (buflen>buflimit){
-    errno = 0;
     return NULL;
   }
   
@@ -253,11 +240,6 @@ char * mu_read_small_file(const char *fname){
     return NULL;    
   }
   
-  if (errno){
-    MU_WARN_IF_ERRNO();
-    return NULL;
-  }
-
   return buf;
 
 }
@@ -337,7 +319,6 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
 }
 
 static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
-  errno = 0;
   const char *env_sqlite3_bin = getenv("MULTICORE_SQLITE3_BIN");
   const char *default_sqlite3_bin = "sqlite3";
   const char *bin =  (env_sqlite3_bin)? env_sqlite3_bin: default_sqlite3_bin;    
@@ -348,19 +329,17 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
     return 0;
   }
   if (pid==0){
-    errno = 0;
     int rd, wd, ed;
     if (task->ename){
       ed = open(task->ename, O_WRONLY | O_CREAT, 0700);
-      if (errno!=0){
+      if (ed<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror(mu_cat("Fatal: mu_start_task could not open error file ",task->ename));
 	}
 	exit(EXIT_FAILURE);
       }
-      dup2(ed,2);
-      if (errno!=0){
+      if (dup2(ed,2)<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror("Fatal: mu_start_task could not set error file with dup2 ");
@@ -371,15 +350,14 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
     }
     if (task->iname) {
       rd = open(task->iname, O_RDONLY);
-      if (errno!=0){
+      if (rd<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror(mu_cat("Fatal: mu_run could not open input file ",task->iname));
 	} 
 	exit(EXIT_FAILURE);
       }
-      dup2(rd,0);
-      if (errno!=0){
+      if (dup2(rd,0)<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror("Fatal: mu_start_task could not set input file with dup2 ");
@@ -389,15 +367,14 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
     }
     if (task->oname){
       wd = open(task->oname, O_WRONLY | O_CREAT, 0700);
-      if (errno!=0){
+      if (wd<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror(mu_cat("Fatal: mu_start_task could not open output file ",task->oname));
 	}
 	exit(EXIT_FAILURE);
       }
-      dup2(wd,1);
-      if (errno!=0){
+      if (dup2(wd,1)<0){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror("Fatal: mu_start_task could not set output file with dup2 ");
@@ -406,7 +383,7 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
       }
     }
     int err = execvp(bin, argv);
-    if ((err!=0) || (errno!=0)){
+    if (err){
       if (errormsg){
 	fputs(errormsg, stderr);
 	fprintf(stderr,"Error while trying to run %s \n",bin);
@@ -509,7 +486,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
     return -1;
   }
   shardc = (int) strtol(tok0, NULL, 10);
-  if ((shardc<=0) || (errno!=0)){
+  if (shardc<=0){
     MU_WARN("An unusual error occurred in mu_create_shards_from_sqlite_table() while parsing the data returned from examining the shardid column of the database table. On the first line of data I expected to get the number of shards, but instead received: %s\n", tok0);
     return -1;
   }
@@ -551,19 +528,16 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
 }
 
 static unsigned int mu_get_random_seed(void){
-  errno = 0;
   /* We would rather initialize from /dev/urandom */
   /* But will use remainder of unix time by 7919 in case urandom does not work */
   unsigned int backuprv = (unsigned int) (time(NULL) % 7919);
   int fd = open("/dev/urandom",O_RDONLY);
-  if ((fd<0) || (errno)){
-    errno = 0;
+  if (fd<0){
     return backuprv;
   }
   unsigned int result = 0;
-  read(fd, (void *) &result, sizeof(result));
-  if (errno){
-    errno=0;
+  int count = read(fd, (void *) &result, sizeof(result));
+  if (count<=0){
     return backuprv;
   }
   close(fd);
@@ -606,14 +580,12 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
   const char *tmpdir = mu_create_temp_dir();
   if (NULL==tmpdir)
     return -1;
-  errno = 0;
   if (mkdir(dbDir, 0700)){
     if (errno != EEXIST){
       MU_WARN("mu_create_shards_from_csv could not create requested directory %s\n", dbDir);
       MU_WARN_IF_ERRNO();
       return -1;
     }
-    errno=0;
   }
   FILE *csvf = mu_fopen(csvname,"r");
   if (NULL==csvf)
@@ -649,8 +621,8 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
       MU_WARN("An unusual error occurred while copying the input csv file into multiple temporary csv files.  mu_create_shards_from_csv() generated random number %d not between 0 and %d \n", fnum, shardc);
       return -1;
     }
-    fputs(csvbuf, csvshards[fnum]);
-    if (errno){
+    int written = fputs(csvbuf, csvshards[fnum]);
+    if (written<0){
       MU_WARN("%s\n", "An error occurred in mu_create_shards_from_csv() while writing data from the input csv file into a temporary csv file.");
       MU_WARN_IF_ERRNO();
       return -1;
@@ -669,15 +641,14 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
     ".import %s/%.3d %s\n";
 
   for(ishard=0;ishard<shardc;++ishard){
-    errno=0;
     if (fclose(csvshards[ishard])){
       MU_WARN("A serious file I/O error occurred writing shard file number %d\n", ishard);
       MU_WARN_IF_ERRNO();
       MU_WARN("This file is probably corrupt. The %s directory containing the csv shards may be deleted.\n", tmpdir);
       return -1;
     }
-    fprintf(cmdf, cmdfmt, dbDir, ishard, createsql, tmpdir, ishard, tablename);
-    if (errno){
+    int written = fprintf(cmdf, cmdfmt, dbDir, ishard, createsql, tmpdir, ishard, tablename);
+    if (written<0){
       MU_WARN("%s\n", "mu_create_shards_from_csv() detected an error while writing a command file to create the shard databases. ");
       MU_WARN_IF_ERRNO();
       free((void *) createsql);
@@ -721,8 +692,7 @@ static const char *mu_sqlite3_extensions(void){
     return NULL;
   }
   char *tok = strtok(e, " ");
-  errno = 0;
-  while (tok && (offset<bufsize) && (!errno)){
+  while (tok && (offset<bufsize)){
     offset += snprintf(exts+offset,
 		       bufsize-offset,
 		       ".load %s\n",
@@ -735,10 +705,10 @@ static const char *mu_sqlite3_extensions(void){
 
 static int mu_fLoadExtensions(FILE *f){
   const char *exts = mu_sqlite3_extensions();
-  errno = 0;
+  int written = 0;
   if (exts)
-    fputs(exts, f);
-  return errno;
+    written = fputs(exts, f);
+  return (written<0)? -1: 0;
 }
 
 
@@ -867,8 +837,6 @@ const char *mu_error_null_query =
   
 char * mu_run_query3(struct mu_DBCONF *conf,  struct mu_QUERY *q)
 {
-  errno = 0;
-
   if (NULL==conf){
     MU_WARN("%s\n", mu_error_null_dbconf);
     return NULL;
@@ -943,7 +911,6 @@ char * mu_run_query3(struct mu_DBCONF *conf,  struct mu_QUERY *q)
 			    shardc,					\
 			    shardv,					\
 			    mapsql)) return NULL;			\
-  errno = 0;								\
   if (mu_start_task(mapsql_task[mycore], "Fatal error detected by mu_query3() while attempting to run sqlite3 ")) return NULL; \
   free(shardv);								\
   
@@ -1111,8 +1078,6 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
 
 char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
 {
-
-  errno = 0;
 
   if (NULL==conf){
     MU_WARN("%s\n", mu_error_null_dbconf);
