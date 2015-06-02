@@ -1,5 +1,5 @@
 env = Environment(CC='clang-3.6', LIBPATH = '.', CFLAGS='-fPIC')
-lib = env.SharedLibrary('multicoresql', 'libmulticoresql.c')
+lib = env.SharedLibrary('multicoresql', 'multicoresql.c')
 programs = [
 	 env.Program('3sqls.c', LIBS=['multicoresql']),
 	 env.Program('sqls.c', LIBS=['multicoresql']),

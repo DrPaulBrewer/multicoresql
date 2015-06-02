@@ -4,7 +4,7 @@
 */
 
 #define _GNU_SOURCE
-#include "libmulticoresql.h"
+#include "multicoresql.h"
 
 const size_t mu_error_len = 8191;
 char mu_error_buf[mu_error_len+1];

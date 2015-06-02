@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "libmulticoresql.h"
+#include "multicoresql.h"
 
 int main(int argc, char **argv){
   char *dbname = NULL;  /* -d */

@@ -1,4 +1,4 @@
-#include "libmulticoresql.h"
+#include "multicoresql.h"
 
 long int get_long_int_or_die(const char *instring, const char *errfmt){
   long int result = strtol(instring, NULL, 10);

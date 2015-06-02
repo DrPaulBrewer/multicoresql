@@ -1,4 +1,4 @@
-#include "libmulticoresql.h"
+#include "multicoresql.h"
 
 int main(int argc, char **argv){
   if (argc<4){
