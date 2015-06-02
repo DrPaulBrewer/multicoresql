@@ -1242,8 +1242,6 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
       return NULL;
     }
   }
-
-
   if (reducesql){
     if (mu_start_task(reducesql_task, errormsg_on_start)){
       MU_FREE_Q();
@@ -1255,14 +1253,8 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     }
     result = mu_read_small_file(reducesql_task->oname);
   }
-  
   MU_FREE_Q();
   return result;
-
- 
-
-  return NULL;
-
 }
 
 
