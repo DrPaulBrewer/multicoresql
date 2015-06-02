@@ -1,5 +1,8 @@
 MulticoreSQL todo list
 
+QH refactor, give each task a dbname to make run_query cleaner.  reduce dbname
+can be reset to the first map dbname.  Eliminate query3, etc...
+
 H Usage examples
 
 H python wrapper and unit tests

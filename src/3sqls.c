@@ -78,7 +78,7 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
   
-  char * result = mu_run_query3(conf,
+  char * result = mu_run_query(conf,
 				mu_create_query(mapsql, NULL, reducesql)
 				);
   if (result)

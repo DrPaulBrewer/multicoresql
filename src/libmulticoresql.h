@@ -68,9 +68,6 @@ struct mu_QUERY  * mu_create_query(const char *mapsql_or_fname,
 				 const char *reducesql_or_fname);
 
 /** run a map query, and optionally a reduce query against the shard collection in conf */
-char * mu_run_query3(struct mu_DBCONF *conf, struct mu_QUERY *q);
-
-
 char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q);
 
 #endif /* LIBMULTICORESQL_H */
