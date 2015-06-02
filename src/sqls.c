@@ -23,9 +23,8 @@ int main(int argc, char **argv){
     switch(c)
       {
       case 'c':
-	errno = 0;
 	ncores = (int) strtol(optarg,NULL,10);
-	if (errno==0)
+	if (ncores<=0)
 	  break;
 	fprintf(stderr,"Option -c requires number, got %s \n", optarg);
 	return 1;

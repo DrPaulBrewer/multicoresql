@@ -1,9 +1,8 @@
 #include "libmulticoresql.h"
 
 long int get_long_int_or_die(const char *instring, const char *errfmt){
-  errno = 0;
   long int result = strtol(instring, NULL, 10);
-  if (errno!=0){
+  if ((0==result) && (errno)){
     fprintf(stderr, errfmt, instring);
     exit(EXIT_FAILURE);
   }
@@ -21,7 +20,6 @@ int main(int argc, char **argv){
   int skiplines = 0;
   int shardcount = 0;
   const char *csvname = argv[1];
-  errno = 0;
   skiplines = (int) get_long_int_or_die(argv[2],
 					   "sqlsfromcsv: parameter skiplines, expected number of lines to skip, got: %s \n");
   if (skiplines < 0)

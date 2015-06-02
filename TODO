@@ -1,9 +1,5 @@
 MulticoreSQL todo list
 
-H Code Review: Code shall not check errno for errors, but instead
-check the return code of the involved function appropriately.
--- done in libmulticoresql.c -- TODO in utilities
-
 H Usage examples
 
 H python wrapper and unit tests
@@ -37,6 +33,12 @@ COMPLETED
 ---QH In all sql inputs, allow either sql string or sql filename as input
      (to stay at least somewhat DRY, necessitated create_query()/run_query()
      split in functionality and addition of a new struct mu_QUERY )
+
+---H Code Review: Code shall not check errno for errors, but instead
+check the return code of the involved function appropriately.
+Thanks to participants on this Stack Overflow question:
+http://stackoverflow.com/questions/30569981/does-free-set-errno
+
 
 
 
