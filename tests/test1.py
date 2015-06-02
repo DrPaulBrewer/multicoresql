@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+import os
 import subprocess
 import math
 
 def runsqls(mybin, db, mapsql, reducesql):
-    return subprocess.check_output([mybin, "-d", db, "-m", mapsql, "-r", reducesql])
+    os.putenv('LD_LIBRARY_PATH','../build')
+    return subprocess.check_output([mybin, "-d", db, "-m", mapsql, "-r", reducesql],env=os.environ)
 
 def test(mybin, db, mapsql, reducesql, expected, tol):
     print "Test:"
@@ -57,8 +59,8 @@ def suite(mybin,db):
     test(mybin,db,m4,r4,e4,t4)
     
 
-suite("/usr/local/bin/sqls", "./mega")
-suite("/usr/local/bin/3sqls", "./mega")
+suite("../build/sqls", "./mega")
+suite("../build/3sqls", "./mega")
 
 
 

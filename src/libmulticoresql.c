@@ -403,6 +403,10 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
 }
 
 static int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
+  if (NULL==task){
+    MU_WARN("%s\n", "An unusual error occurred. NULL task pointer in mu_finish_task()");
+    return -1;
+  }
   waitpid(task->pid, &(task->status), 0);
   const char *errs = NULL;
   if (task->ename)
@@ -432,13 +436,15 @@ static int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
 }
 
 static void mu_free_task(struct mu_SQLITE3_TASK *task){
-  free((void *) task->dirname);
-  free((void *) task->taskname);
-  free((void *) task->iname);
-  free((void *) task->oname);
-  free((void *) task->ename);
-  free((void *) task->pname);
-  free((void *) task);
+  if (task){
+    free((void *) task->dirname);
+    free((void *) task->taskname);
+    free((void *) task->iname);
+    free((void *) task->oname);
+    free((void *) task->ename);
+    free((void *) task->pname);
+    free((void *) task);
+  }
 }
 
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir){
@@ -1119,18 +1125,43 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
   
   FILE *reducef;
   const char * rname = reducesql_task->iname;
+
+  size_t cursor = 0; // for reduce 
+  size_t bufsize = (reducesql)? ((1024*conf->ncores)+strlen(reducesql)) :0;
+  char *buf = NULL;
+
+  const char *ext = mu_sqlite3_extensions();
+
+  char * coredbname[conf->ncores];
+
+  for(icore=0;icore<conf->ncores;++icore)
+    coredbname[icore]=NULL;
+  
+#define MU_FREE_Q() do { \
+    int i;							\
+    for(i=0;i<conf->ncores;++i){				\
+      mu_free_task(mapsql_task[i]);				\
+      free( (void *) coredbname[i]);				\
+    }								\
+    mu_free_task(reducesql_task);				\
+    if (reducesql) free(buf);					\
+    free((void *) tmpdir);					\
+  } while(0)							\
+    
   
   if (reducesql){
-    reducef = mu_fopen(rname, "w");
-    if (NULL==reducef)
+    buf = malloc(bufsize);
+    if (NULL==buf){
+      MU_WARN_OOM();
+      MU_FREE_Q();
       return NULL;
-    MU_FPRINTF(rname, NULL, reducef, ".open %s/coredb.000\n", tmpdir);
-    MU_FPRINTF(rname, NULL, reducef, "%s\n",".bail on");
-    if (mu_fLoadExtensions(reducef))
-      return NULL;
+    }
+    MU_PRINTBUF(".open %s/coredb.000\n", tmpdir);
+    MU_PRINTBUF("%s\n",".bail on");
+    if (ext)
+      MU_PRINTBUF("%s\n", ext);
   }
   
-  char * coredbname[conf->ncores];
   const size_t coredbnamesize = 255;
   
   const char *errormsg_on_start = "Fatal error detected by mu_query() attempting to start sqlite3 ";
@@ -1141,60 +1172,97 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     coredbname[icore] = malloc(coredbnamesize);
     if (NULL==coredbname[icore]){
       MU_WARN_OOM() ;
+      MU_FREE_Q();
       return NULL;
     }
     if (snprintf(coredbname[icore],coredbnamesize,"%s/coredb.%.3d",tmpdir,icore) > coredbnamesize){
       MU_WARN("%s\n", "mu_query() An unusual error occurred.  The query was not executed.");
+      MU_FREE_Q();
       return NULL;
     }
     if ((reducef) && (icore>0)){
-      MU_FPRINTF(rname, NULL, reducef, "attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
-      MU_FPRINTF(rname, NULL, reducef, "insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
-      MU_FPRINTF(rname, NULL, reducef, "detach database 'coredb%.3d';\n", icore);
+      MU_PRINTBUF("attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
+      MU_PRINTBUF("insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
+      MU_PRINTBUF("detach database 'coredb%.3d';\n", icore);
     }
     int shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = mu_getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
-    if (NULL==shardv)
+    
+    if (NULL==shardv){
+      MU_FREE_Q();
       return NULL;
-    if (mu_makeQueryCoreFile(conf,
-			     mapsql_task[icore]->iname,
-			     coredbname[icore],
-			     shardc,
-			     shardv,
-			     mapsql))
-      return NULL;      
-    if (mu_start_task(mapsql_task[icore], errormsg_on_start))
-      return NULL;
+    }
+    int makestatus = mu_makeQueryCoreFile(conf,
+					  mapsql_task[icore]->iname,
+					  coredbname[icore],
+					  shardc,
+					  shardv,
+					  mapsql);
     free(shardv);
+    if (makestatus){
+      MU_FREE_Q();
+      return NULL;
+    }
+    if (mu_start_task(mapsql_task[icore], errormsg_on_start)){
+      MU_FREE_Q();
+      return NULL;
+    }
   }
   
-  // wait for workers
-
-  for(icore=0;icore<conf->ncores;++icore){
-    if (mu_finish_task(mapsql_task[icore], errormsg_on_finish_map))
-      return NULL;
-  }
-
   char *result = NULL;
   
   if (reducesql){
     int reducer_status=0;
-    MU_FPRINTF(rname, NULL, reducef, "%s\n", reducesql);
+    reducef = mu_fopen(rname, "w");
+    if (NULL==reducef){
+      MU_FREE_Q();
+      return NULL;
+    }
+    MU_PRINTBUF("%s\n", reducesql);
+    if (cursor>bufsize){
+      MU_WARN("%s\n", "An unusual error occurred.  The map query may have begun processing, but the reduce query was not processed.");
+      MU_FREE_Q();
+      return NULL;
+    }
+    int written = fputs(buf, reducef);
+    if (written<=0){
+      MU_WARN_FNAME(rname);
+      MU_WARN_IF_ERRNO();
+      MU_FREE_Q();
+      return NULL;
+    }
     MU_FCLOSE_W(rname, NULL, reducef);
-    if (mu_start_task(reducesql_task, errormsg_on_start))
-      return NULL;
-    if (mu_finish_task(reducesql_task, errormsg_on_finish_reduce))
-      return NULL;
-    result = mu_read_small_file(reducesql_task->oname);
   }
 
-  free((void *) tmpdir);
-  mu_free_task(reducesql_task);
+  // wait for workers
+
   for(icore=0;icore<conf->ncores;++icore){
-    mu_free_task(mapsql_task[icore]);
-    free( (void *) coredbname[icore]);
+    if (mu_finish_task(mapsql_task[icore], errormsg_on_finish_map)){
+      MU_FREE_Q();
+      return NULL;
+    }
   }
+
+
+  if (reducesql){
+    if (mu_start_task(reducesql_task, errormsg_on_start)){
+      MU_FREE_Q();
+      return NULL;
+    }
+    if (mu_finish_task(reducesql_task, errormsg_on_finish_reduce)){
+      MU_FREE_Q();
+      return NULL;
+    }
+    result = mu_read_small_file(reducesql_task->oname);
+  }
+  
+  MU_FREE_Q();
   return result;
+
+ 
+
+  return NULL;
+
 }
 
 
