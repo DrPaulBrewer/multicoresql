@@ -3,9 +3,10 @@ import os
 import subprocess
 import math
 
+os.putenv('LD_LIBRARY_PATH','../build')
+
 def runsqls(mybin, db, mapsql, reducesql):
-    os.putenv('LD_LIBRARY_PATH','../build')
-    return subprocess.check_output([mybin, "-d", db, "-m", mapsql, "-r", reducesql],env=os.environ)
+    return subprocess.check_output([mybin, "-d", db, "-m", mapsql, "-r", reducesql])
 
 def test(mybin, db, mapsql, reducesql, expected, tol):
     print "Test:"
