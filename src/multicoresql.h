@@ -27,6 +27,7 @@ struct mu_SQLITE3_TASK {
   const char *oname;
   const char *ename;
   const char *pname;
+  const char *dbname;
 };
 
 const char *mu_error_string();

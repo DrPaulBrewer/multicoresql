@@ -1,7 +1,6 @@
 MulticoreSQL todo list
 
-QH refactor, give each task a dbname to make run_query cleaner.  reduce dbname
-can be reset to the first map dbname.  Eliminate query3, etc...
+H diagnose and correct: query leaves tmp files around when query succeeds
 
 H Usage examples
 
@@ -41,6 +40,9 @@ COMPLETED
 check the return code of the involved function appropriately.
 Thanks to participants on this Stack Overflow question:
 http://stackoverflow.com/questions/30569981/does-free-set-errno
+
+---QH refactor, give each task a dbname to make run_query cleaner.  reduce dbname can be reset to the first map dbname.  Eliminate query3, etc...
+
 
 
 

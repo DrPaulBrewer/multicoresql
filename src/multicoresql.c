@@ -273,7 +273,7 @@ static const char *mu_dup_sql_or_read_file(const char *sql_or_fname){
   return result;
 }
 
-static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *taskname, int tasknum){
+static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *mydbname, const char *taskname, int tasknum){
   if ((NULL==dirname) || (NULL==taskname) || (tasknum<0) ){
     MU_WARN("%s\n", "mu_define_task detected one or more invalid or NULL parameters");
     return NULL;
@@ -295,10 +295,11 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   task->tasknum = tasknum;
   const char *fmt = "%s/%s.%s.%.3d";
   size_t bufsize = 1+snprintf(NULL,0,fmt,dirname,taskname,"progress", tasknum);
-  char *iname = malloc(bufsize);
-  char *oname = malloc(bufsize);
-  char *ename = malloc(bufsize);
-  char *pname = malloc(bufsize);
+  char *iname  = malloc(bufsize);
+  char *oname  = malloc(bufsize);
+  char *ename  = malloc(bufsize);
+  char *pname  = malloc(bufsize);
+  char *dbname = (mydbname)? strdup(mydbname): malloc(bufsize);
   if ((NULL==iname) || (NULL==oname) || (NULL==ename) || (NULL==pname)){
     MU_WARN_OOM();
     return NULL;
@@ -307,7 +308,8 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   int no = snprintf(oname, bufsize, fmt, dirname, taskname, "out", tasknum);
   int ne = snprintf(ename, bufsize, fmt, dirname, taskname, "err", tasknum);
   int np = snprintf(pname, bufsize, fmt, dirname, taskname, "progress", tasknum);
-  if ((ni>bufsize) || (no>bufsize) || (ne>bufsize) || (np>bufsize)){
+  int nd = (mydbname)? 1: snprintf(dbname,bufsize, fmt, dirname, taskname, "db", tasknum);
+  if ((ni>bufsize) || (no>bufsize) || (ne>bufsize) || (np>bufsize) || (nd>bufsize)){
     MU_WARN("mu_define_task() An unusual error occurred while setting up task %s\n", taskname);
     return NULL;
   }
@@ -315,6 +317,7 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
   task->oname = (const char *) oname;
   task->ename = (const char *) ename;
   task->pname = (const char *) pname;
+  task->dbname = (const char *) dbname;
   return task;
 }
 
@@ -322,7 +325,7 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
   const char *env_sqlite3_bin = getenv("MULTICORE_SQLITE3_BIN");
   const char *default_sqlite3_bin = "sqlite3";
   const char *bin =  (env_sqlite3_bin)? env_sqlite3_bin: default_sqlite3_bin;    
-  char * const argv[] = { "sqlite3" , NULL };
+  char * const argv[] = { "sqlite3" , (char * const) task->dbname, NULL };
   pid_t pid = fork();
   if (pid>0) {
     task->pid = pid;
@@ -416,6 +419,8 @@ static int mu_finish_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
       MU_WARN("%s\n", errormsg);
     MU_WARN("Exit status %d\n", task->status);
     MU_WARN("sqlite3 task %s %.3d\n", task->taskname, task->tasknum);
+    if (task->dbname)
+      MU_WARN(" dbfile %s \n", task->dbname);
     if (task->iname)
       MU_WARN(" input_file %s \n",task->iname);
     if (task->oname)
@@ -443,6 +448,7 @@ static void mu_free_task(struct mu_SQLITE3_TASK *task){
     free((void *) task->oname);
     free((void *) task->ename);
     free((void *) task->pname);
+    free((void *) task->dbname);
     free((void *) task);
   }
 }
@@ -450,15 +456,12 @@ static void mu_free_task(struct mu_SQLITE3_TASK *task){
 int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename, const char *dbdir){
   typedef const char * pchar;
   const char *shard_setup_fmt =
-    ".open %s\n"
     "create temporary table shardids as select distinct shardid from %s where (shardid is not null) and (shardid!='');\n"
     "select count(*) from shardids;\n"
     "select shardid from shardids order by shardid;\n";   
   int i;
   int shardc;
   char **shardv;
-  const char *shard_data_init_fmt =
-    ".open %s\n";
   const char *shard_data_each_fmt =
     "attach database '%s/%s' as 'shard';\n"
     "create table shard.%s as select * from %s where shardid='%s';\n"
@@ -467,7 +470,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   if (NULL==tmpdir)
     return -1;
   struct mu_SQLITE3_TASK *getshardnames_task =
-    mu_define_task(tmpdir, "getshardnames", 0);
+    mu_define_task(tmpdir, dbname, "getshardnames", 0);
   if (NULL==getshardnames_task)
     return -1;
   FILE *getcmdf = mu_fopen(getshardnames_task->iname, "w");
@@ -506,13 +509,12 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   }
   shardv[shardc] = NULL;
   struct mu_SQLITE3_TASK *makeshards_task =
-    mu_define_task(tmpdir,"makeshards",0);
+    mu_define_task(tmpdir, dbname, "makeshards",0);
   if (NULL==makeshards_task)
     return -1;
   FILE *makeshardsf = mu_fopen(makeshards_task->iname, "w");
   if (NULL==makeshardsf)
     return -1;
-  MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_init_fmt, dbname);
   for(i=0;i<shardc;++i){
     if (ok_mu_shard_name(shardv[i])){
       MU_FPRINTF(makeshards_task->iname, -1, makeshardsf, shard_data_each_fmt, dbdir, shardv[i], tablename, tablename, shardv[i]);
@@ -635,7 +637,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
     }
   }
   fclose(csvf);
-  struct mu_SQLITE3_TASK *createdb_task = mu_define_task(tmpdir, "createdb", 0);
+  struct mu_SQLITE3_TASK *createdb_task = mu_define_task(tmpdir, NULL, "createdb", 0);
   if (NULL==createdb_task)
     return -1;
   FILE *cmdf = mu_fopen(createdb_task->iname, "w");
@@ -955,12 +957,14 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
 
   struct mu_SQLITE3_TASK *mapsql_task[conf->ncores];
   for(icore=0;icore<conf->ncores;++icore){
-    mapsql_task[icore] = mu_define_task(tmpdir, "mapsql", icore);
+    mapsql_task[icore] =
+      mu_define_task(tmpdir, NULL, "mapsql", icore);
     if (NULL==mapsql_task[icore])
       return NULL;
   }
   
-  struct mu_SQLITE3_TASK *reducesql_task = mu_define_task(tmpdir,"reducesql",0);
+  struct mu_SQLITE3_TASK *reducesql_task =
+    mu_define_task(tmpdir,mapsql_task[0]->dbname,"reducesql",0);
   if (NULL==reducesql_task)
     return NULL;
   
@@ -973,16 +977,10 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
 
   const char *ext = mu_sqlite3_extensions();
 
-  char * coredbname[conf->ncores];
-
-  for(icore=0;icore<conf->ncores;++icore)
-    coredbname[icore]=NULL;
-  
 #define MU_FREE_Q() do { \
     int i;							\
     for(i=0;i<conf->ncores;++i){				\
       mu_free_task(mapsql_task[i]);				\
-      free( (void *) coredbname[i]);				\
     }								\
     mu_free_task(reducesql_task);				\
     if (reducesql) free(buf);					\
@@ -997,7 +995,6 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
       MU_FREE_Q();
       return NULL;
     }
-    MU_PRINTBUF(".open %s/coredb.000\n", tmpdir);
     MU_PRINTBUF("%s\n",".bail on");
     if (ext)
       MU_PRINTBUF("%s\n", ext);
@@ -1010,20 +1007,14 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
   const char *errormsg_on_finish_reduce = "Fatal error detected by mu_query() in reduce task"; 
   
   for(icore=0;icore<(conf->ncores);++icore){
-    coredbname[icore] = malloc(coredbnamesize);
-    if (NULL==coredbname[icore]){
-      MU_WARN_OOM() ;
-      MU_FREE_Q();
-      return NULL;
-    }
-    if (snprintf(coredbname[icore],coredbnamesize,"%s/coredb.%.3d",tmpdir,icore) > coredbnamesize){
-      MU_WARN("%s\n", "mu_query() An unusual error occurred.  The query was not executed.");
-      MU_FREE_Q();
-      return NULL;
-    }
     if ((reducef) && (icore>0)){
-      MU_PRINTBUF("attach database '%s' as 'coredb%.3d';\n", coredbname[icore], icore);
-      MU_PRINTBUF("insert into %s select * from coredb%.3d.%s;\n", conf->otablename, icore, conf->otablename);
+      MU_PRINTBUF("attach database '%s' as 'coredb%.3d';\n",
+		  mapsql_task[icore]->dbname,
+		  icore);
+      MU_PRINTBUF("insert into %s select * from coredb%.3d.%s;\n",
+		  conf->otablename,
+		  icore,
+		  conf->otablename);
       MU_PRINTBUF("detach database 'coredb%.3d';\n", icore);
     }
     int shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc);
@@ -1035,7 +1026,7 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     }
     int makestatus = mu_makeQueryCoreFile(conf,
 					  mapsql_task[icore]->iname,
-					  coredbname[icore],
+					  mapsql_task[icore]->dbname,
 					  shardc,
 					  shardv,
 					  mapsql);
