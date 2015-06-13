@@ -7,7 +7,7 @@ Dr Paul Brewer - Economic and Financial Technology Consulting LLC - drpaulbrewer
 database shards. It has been tested on 2/4/8 core consumer hardware and the 16 and 32 core rentals available
 at Amazon EC2 (e.g. c4-8xlarge).  
 
-THe primary consideration for good performance is that the dataset fit into Linux cache memory.  
+The primary consideration for good performance is that the dataset fit into Linux cache memory.  
 multicoresql does not require that datasets fit into memory and will happily slog through larger datasets, although
 performance will be limited by disk bottlenecks.  The time required reading disk vs memory can be 10-20x
 
