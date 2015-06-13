@@ -968,7 +968,7 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
   if (NULL==reducesql_task)
     return NULL;
   
-  FILE *reducef;
+  FILE *reducef = NULL;
   const char * rname = reducesql_task->iname;
 
   size_t cursor = 0; // for reduce 
@@ -1007,7 +1007,7 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
   const char *errormsg_on_finish_reduce = "Fatal error detected by mu_query() in reduce task"; 
   
   for(icore=0;icore<(conf->ncores);++icore){
-    if ((reducef) && (icore>0)){
+    if ((reducesql) && (icore>0)){
       MU_PRINTBUF("attach database '%s' as 'coredb%.3d';\n",
 		  mapsql_task[icore]->dbname,
 		  icore);
