@@ -15,6 +15,28 @@ multicoresql does not at this time distribute tasks across multiple machines.
 
 ##License: [The MIT License](https://raw.githubusercontent.com/DrPaulBrewer/multicoresql/master/LICENSE.txt)
 
+##Test Drive without Installation
+
+If you have the [`docker`](http://docker.com) container service running on a Linux host, you can test drive 
+multicoresql without installing it permanently.  multicoresql does not otherwise use or require docker.
+
+The test drive will always fetch the latest code from this github site.
+
+Run either of these docker commands for a test:
+
+clang build and test:  `docker run -it drpaulbrewer/multicoresql-test-clang:latest`
+
+gcc build and test:    `docker run -it drpaulbrewer/multicoresql-test-gcc:latest`
+
+These containers will run the build and a test script and then exit.  
+
+The test script gives several examples of map and reduce queries and expected results against
+a sharded table of integers from 1 to 1,000,000.  This exercises creation of the shards from a csv file
+and the map/reduce capability.  Among the tests are math queries that sum series for log(2) and PI.
+
+For more control, run manually by appending `/bin/bash` to the `docker run` command.  Then, at the
+root prompt for the container, `cd /opt/github` and `./fetchBuildTest.sh` to run the build and test script.  
+
 ##Installation
 
 multicoresql uses and requires as pre-requsities the [SQLite](http://www.sqlite.org) database engine and the [scons](http://www.scons.org) build system
