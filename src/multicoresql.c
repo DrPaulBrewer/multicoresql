@@ -1085,6 +1085,7 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     }
     result = mu_read_small_file(reducesql_task->oname);
   }
+  mu_remove_temp_dir(tmpdir);
   MU_FREE_Q();
   return result;
 }
