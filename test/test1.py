@@ -2,6 +2,13 @@
 import os
 import subprocess
 import math
+import re
+
+if not re.search(r'/(test)$', os.getcwd()):
+    print "Please cd to the test directory before running the tests."
+    exit()
+
+os.system("rm -rf ./mega")
 
 os.putenv('LD_LIBRARY_PATH','../build')
 
@@ -27,6 +34,12 @@ def test(mybin, db, mapsql, reducesql, expected, tol):
     print " "
     
 
+setupsqls = "../build/sqlsfromcsv megadata.csv 0 megadata.sql mega ./mega 20"
+print "setting up ./mega test databases with :"
+print setupsqls
+if os.system(setupsqls):
+    print "sqlsfromcsv failed! failed to setup ./test/mega database directory. "
+    exit()
 
 def suite(mybin,db):
     m0 = "select n from mega where n>=1000 and n<=2000;"
