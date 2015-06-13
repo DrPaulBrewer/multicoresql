@@ -19,15 +19,11 @@ multicoresql does not at this time distribute tasks across multiple machines.
 
 multicoresql uses and requires as pre-requsities the [SQLite](http://www.sqlite.org) database engine and the [scons](http://www.scons.org) build system
 
-multicoresql is setup to compile under [`clang`](http://clang.llvm.org/) and install into `/usr/local`
+multicoresql prefers to compile under [`clang`](http://clang.llvm.org/) but will also compile under gcc and will install into `/usr/local`.
 
-If you'd prefer instead to compile with gcc, change `CC` on the top line of  ./src/SConscript before running `scons`
+Install script for bare Debian and related distros such as Ubuntu:
 
-Install script for Debian and related distros such as Ubuntu:
-
-    sudo apt-get install scons sqlite3
-    # clang-3.6 needed if you want to compile as is using the clang-3.6 compiler 
-    sudo apt-get install clang-3.6   
+    sudo apt-get install git scons clang sqlite3
     git clone https://github.com/DrPaulBrewer/multicoresql
     cd multicoresql
     # make the build directory where the compiled libraries and executables will be written

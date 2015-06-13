@@ -19,7 +19,7 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
 #include "multicoresql.h"
 
 const size_t mu_error_len = 8191;
-char mu_error_buf[mu_error_len+1];
+char mu_error_buf[8192];
 size_t mu_error_cursor = 0;
 
 const char *mu_error_oom =

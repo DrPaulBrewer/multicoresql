@@ -1,3 +1,10 @@
-env = Environment(CC='clang-3.6', LIBPATH = '.', CFLAGS='-fPIC')
+import os
+
+def findFirst(l):
+    return (v for v in l if 0==os.system('which '+v)).next()
+    
+myCC = findFirst(['clang-3.6','clang','gcc'])
+
+env = Environment(CC=myCC, LIBPATH = '.', CFLAGS='-fPIC')
 env.Program('LeibnizPi1G.c')
 env.Program('numbers.c')
