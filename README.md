@@ -7,11 +7,11 @@ Dr Paul Brewer - Economic and Financial Technology Consulting LLC - drpaulbrewer
 
 ##Installation
 
-multicoresql uses the SQLite database engine and the scons build system
+multicoresql uses and requires as pre-requsities the [SQLite](http://www.sqlite.org) database engine and the [scons](http://www.scons.org) build system
 
-It is setup to compile under clang and install into /usr/local
+multicoresql is setup to compile under [`clang`](http://clang.llvm.org/) and install into `/usr/local`
 
-If you'd prefer to compile with gcc, change `CC` on the top line of  ./src/SConscript before running `scons`
+If you'd prefer instead to compile with gcc, change `CC` on the top line of  ./src/SConscript before running `scons`
 
 Install script for Debian and related distros such as Ubuntu:
 
