@@ -72,7 +72,7 @@ is used to create, from a table in an existing sqlite3 database with a shardid c
 
 Running `sqlsfromsqlite` without parameters provides this reminder message:
     
-    usage: sqlshard <dbname> <tablename> <dbdir> 
+    usage: sqlsfromsqlite <dbname> <tablename> <dbdir> 
 
 `<dbname>` String, is the /path/to/an/existing/sqlite3.db 
 
