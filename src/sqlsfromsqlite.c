@@ -20,7 +20,7 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHE
 
 int main(int argc, char **argv){
   if (argc<4){
-    fprintf(stderr,"%s\n","usage: sqlshard <dbname> <tablename> <dbdir> \n");
+    fprintf(stderr,"%s\n","usage: sqlsfromsqlite <dbname> <tablename> <dbdir> \n");
     exit(EXIT_FAILURE);
   }
 
