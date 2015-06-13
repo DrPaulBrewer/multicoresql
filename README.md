@@ -20,9 +20,11 @@ Install script for Debian and related distros such as Ubuntu:
     sudo apt-get install clang-3.6   
     git clone https://github.com/DrPaulBrewer/multicoresql
     cd multicoresql
-    # scons version of "make" step
+    # make the build directory where the compiled libraries and executables will be written
+    mkdir ./build
+    # scons version of classic "make"
     scons
-    # scons version of classic "make install" step
+    # scons version of classic "make install"
     sudo scons install
     
 ##Importing Data
