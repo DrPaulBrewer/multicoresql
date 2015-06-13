@@ -41,7 +41,49 @@ Install script for Debian and related distros such as Ubuntu:
 
 ###from CSV
 
+    sqlsfromcsv
+
+is used to create, from a single CSV file, a collection of sqlite3 shard databases suitable for multicoresql.
+
+Running `sqlsfromcsv` without parameters provides this reminder message:
+
+    Usage: sqlsfromcsv csvfile skiplines schemafile tablename dbDir shardcount
+    Example: sqlsfromcsv example.csv 1 createmytable.sql mytable ./mytable 100
+    
+`csvfile` String, is the /path/to/csvfile.csv
+
+`skiplines` Number, is the number of lines to skip for omitting CSV header. Usually 1 or 0.
+
+`schemafile` String, gives a filename or a string containing an sqlite `create table` statement for the table data 
+
+`tablename` String, is the tablename to create.  
+
+`dbDir` String, is the /path/to/shards for a directory where sqlsfromcsv should output the sqlite3 database shards
+
+`shardcount` Number, is the number of sqlite3 database shards that should be created from the data in the csv file
+
+Each data row from the csv file is sharded randomly to a shard using a random number generator to select the shard.
+
 ###from existing SQLite Database
+
+    sqlsfromsqlite 
+    
+is used to create, from a table in an existing sqlite3 database with a shardid column, a collection of sqlite3 shards.
+
+Running `sqlsfromsqlite` without parameters provides this reminder message:
+    
+    usage: sqlshard <dbname> <tablename> <dbdir> 
+
+`<dbname>` String, is the /path/to/an/existing/sqlite3.db 
+
+`<tablename>` String, is the source table for extracting data. Currently each run is restricted to a single table.
+
+`<dbDir>` String, is the /path/to/shards for a directory where sqlsfromsqlite should output the sqlite3 db shards
+
+shard databases are created and named from the distinct values of the `shardid` column of the input table.
+
+Allowed characters in the `shardid` column are `[0-9][A-Z][a-z].-_` alphanumeric, dot, dash, and underscore; 
+except that  dot is illegal as the first character of a `shardid`.  
 
 ##Running Queries
 
