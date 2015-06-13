@@ -1,5 +1,5 @@
 # multicoresql
-## A parallel map/reduce execution framework for sqlite databases
+### A parallel map/reduce execution framework for sqlite databases
 
 Dr Paul Brewer - Economic and Financial Technology Consulting LLC - drpaulbrewer@eaftc.com
 
@@ -8,25 +8,10 @@ database shards. It has been tested on 2/4/8 core consumer hardware and the 16 a
 at Amazon EC2 (e.g. c4-8xlarge).  
 
 THe primary consideration for good performance is that the dataset fit into Linux cache memory.  
-
 multicoresql does not require that datasets fit into memory and will happily slog through larger datasets, although
 performance will be limited by disk bottlenecks.  The time required reading disk vs memory can be 10-20x
 
 multicoresql does not at this time distribute tasks across multiple machines. 
-
-multicoresql has import utilities to create shards.  
-
-The end user is required to rewrite their SQL queries to work with the sharded databases as follows:
-
-a *map query* that is run on each shard database; 
-
-plus, optionally
-
-a *reduce query* that is run on the data collected from the map query
-
-Quick Example: Summing a column
-
-    sqls -d ./myshards -m "select sum(n) as partsum from mytable;"  -r "select sum(partsum) as fullsum from maptable;"
 
 ##License: [The MIT License](https://raw.githubusercontent.com/DrPaulBrewer/multicoresql/master/LICENSE.txt)
 
@@ -61,6 +46,22 @@ Install script for Debian and related distros such as Ubuntu:
 ##Running Queries
 
 ###Map/Reduce
+
+Quick Example: Summing a column
+
+    sqls -d ./myshards -m "select sum(n) as partsum from mytable;"  -r "select sum(partsum) as fullsum from maptable;"
+
+Notice here:
+
+`-m` is used to identify a *map query* that is run on each shard database; 
+
+plus, optionally
+
+`-r` is used to identify a *reduce query* that is run on the data collected from the map query.  
+
+The reduce query is always written against the table `maptable`.  
+
+`maptable` is created by multicoresql as the collected results of running the map query on each shard.
 
 ###Map Only
 
