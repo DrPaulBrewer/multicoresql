@@ -203,5 +203,43 @@ where X is an alphanumeric character.
 Temporary directories are typically removed on successful completion of a query or command, but are left
 behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
     
+FAQ
+===
+
+## Common Bugs, Issues, and Error Messages
+
+###FAQ 1. Can not run `sqls`, `sqlsfromcsv` or other executables from build directory:
     
+What you did: 
+
+    cd /path/to/multicoresql
+    mkdir ./build
+    scons
+    cd ./build
+    # try to run anything in the build directory
+
+Message:  `./sqls: error while loading shared libraries: libmulticoresql.so: cannot open shared object file: No such file or directory`
+
+Issue:  The linker can not load the shared library libmulticoresql.so because it doesn't know where to look
+
+Fix:
+
+    export LD_LIBRARY_PATH=/path/to/multicoresql/build
+    
+See also: http://stackoverflow.com/questions/4754633/linux-program-cant-find-shared-library-at-run-time
+
+###FAQ 2.  Can not run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` :
+
+Message:  Similar to FAQ #1  
+
+`error while loading shared libraries: libmulticoresql.so: cannot open shared object file: No such file or directory`
+
+Issue:  The linker can not load the shared library `/usr/local/lib/libmulticoresql.so` because it doesn't know that it is available for system wide use.  
+
+Fix:  Once the files are installed in `/usr/local` as `root`, refresh the ldconfig
+
+    sudo ldconfig
+
+See also:  http://askubuntu.com/questions/631275/how-do-i-do-this-install-you-may-need-to-run-ldconfig
+
 
