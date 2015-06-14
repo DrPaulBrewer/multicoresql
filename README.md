@@ -208,7 +208,7 @@ FAQ Frequently Asked Questions
 
 ###FAQ 1. Why can't I run `sqls`, `sqlsfromcsv` or other executables from the build directory?
 
-Because by default the linker doesn't know to use the shared libraries that are in hte build directory.
+Because by default the linker doesn't know to use the shared libraries that are in the build directory, the current directory, etc.
     
 What you did: 
 
