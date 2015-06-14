@@ -1,7 +1,5 @@
 MulticoreSQL todo list
 
-H fix tests to run from freshly downloaded git repo.  Currently requires some setup.
-
 H More Usage examples
 
 H python wrapper and unit tests
@@ -44,8 +42,9 @@ http://stackoverflow.com/questions/30569981/does-free-set-errno
 ---QH refactor, give each task a dbname to make run_query cleaner.  reduce dbname can be reset to the first map dbname.  Eliminate query3, etc...
 
 --- H diagnose and correct: query leaves tmp files around when query succeeds
-
-
+--- H fix tests to run from freshly downloaded git repo.  Currently requires some setup.
+    Tests can now be run from docker container that does a fresh git clone and build
+    
 
 
 
