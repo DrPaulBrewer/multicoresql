@@ -56,6 +56,23 @@ Install script for bare Debian and related distros such as Ubuntu:
     # scons version of classic "make install"
     sudo scons install
     
+##Manifest
+
+After running `sudo scons install` the following will be installed in `/usr/local`:
+
+`/usr/local/lib/libmulticoresql.so` -- shared library of multicoresql functions
+
+`/usr/local/bin/3sqls` -- query runner that always allocates queries over 3 Linux sqlite3 processes 
+
+`/usr/local/bin/sqls`  -- query runner that allocates queries over a selectable number of processes, 
+                            defaulting to 1 per core
+
+`/usr/local/bin/sqlsfromcsv` --  from a csv data file and a schema,
+                                builds a directory containing sqlite3 database shards  
+
+`/usr/local/bin/sqlsfromsqlite` -- from an existing sqlite3 database table with a shardid column,
+                                builds a directory containing sqlite3 database shards
+    
 ##Importing Data
 
 ###from CSV
@@ -114,6 +131,8 @@ Quick Example: Summing a column
 
 Notice here:
 
+`-d` is used to identify a directory containing sqlite3 databases (shards)
+
 `-m` is used to identify a *map query* that is run on each shard database; 
 
 plus, optionally
@@ -126,13 +145,53 @@ The reduce query is always written against the table `maptable`.
 
 ###Map Only
 
+For a map query only the 
+
+`-d` (sqlite3 db shard directory) and 
+`-m` (mapped sqlite3 query string or sql filename) 
+
+parameters are required.
+
 ###Output formats
+
+Queries are interpreted by the sqlite3 command line shell, and therefore all output formats
+of sqlite3 defined in the sqlite3 `.mode` command are supported:
+
+See https://www.sqlite.org/cli.html for a complete list of special commands.
+
+>.mode MODE ?TABLE?     Set output mode where MODE is one of:
+>                         ascii    Columns/rows delimited by 0x1F and 0x1E
+>                         csv      Comma-separated values
+>                         column   Left-aligned columns.  (See .width)
+>                         html     HTML <table> code
+>                         insert   SQL insert statements for TABLE
+>                         line     One value per line
+>                         list     Values delimited by .separator strings
+>                         tabs     Tab-separated values
+>                         tcl      TCL list elements
+
+Sqlite3 `.mode` commands would typically be given in the `-r` *reduce query*.    
+
+You may provide multiple sql commands by using ";" as a separator 
 
 ##Options
 
 ###Environment Variables
 
-####SQLITE3 Extension Libraries
+`MULTICORE_SQLITE3_BIN` specify the `/path/to/usr/local/bin/sqlite3` path to the sqlite3 command shell
+                        default is to search `PATH`
+                        Useful if you have multiple sqlite3 executables or need a special version.              
+                        
+`MULTICORE_SQLITE3_EXTENSIONS` a space-separated list of libraries to be loaded by multicoresql 
+                        via the sqlite3 `.load` command
 
 ###Temp Directories
+
+    multicoresql creates a temporary directories while running, in `/tmp/multicoresql-XXXXXX`
+    where X is an alphanumeric character.
+    
+    Temporary directories are typically removed on successful completion of a query or command, but are left
+    behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
+    
+    
 
