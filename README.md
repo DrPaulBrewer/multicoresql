@@ -251,4 +251,14 @@ Fix:  Once the files are installed in `/usr/local`, then as `root` refresh the l
 
 See also:  http://askubuntu.com/questions/631275/how-do-i-do-this-install-you-may-need-to-run-ldconfig
 
+<a name="FAQ3">
+###FAQ 3.  Why did I get a warning telling me to run `sudo ldconfig` ?
+
+This warning is **always** generated.  You haven't made an error, nor is there an error in the software.
+
+Because multicoresql includes a shared library, I have included a reminder to run `sudo ldconfig`
+so that your system will be configured properly to load `/usr/local/libmulticoresql.so` when running the
+multicoresql binaries.  
+
+See: FAQ2 for what happens should you fail to run `sudo ldconfig` as required
 
