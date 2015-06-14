@@ -227,6 +227,9 @@ Fix:
     export LD_LIBRARY_PATH=/path/to/multicoresql/build
     # dont type /path/to/... literally, instead substitute the full name of the build directory
     # now run the executables, e.g. sqls, in the ./build subdirectory and they should work
+
+Note:  permanently setting `LD_LIBRARY_PATH`, e.g., on login or shell startup is considered a bad practice.  
+It is expected that you only want to run tests or *temporarily* use the executables from the build.  
     
 See also: http://stackoverflow.com/questions/4754633/linux-program-cant-find-shared-library-at-run-time
 
