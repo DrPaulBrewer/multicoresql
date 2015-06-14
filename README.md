@@ -28,7 +28,8 @@ clang build and test:  `docker run -it drpaulbrewer/multicoresql-test-clang:late
 
 gcc build and test:    `docker run -it drpaulbrewer/multicoresql-test-gcc:latest`
 
-These containers will run the build and a test script and then exit.  
+These containers are located on the public dockerhub and will be automatically downloaded by docker, then run
+the build and a test script and finally exit.  
 
 The test script gives several examples of map and reduce queries and expected results against
 a sharded table of integers from 1 to 1,000,000.  This exercises creation of the shards from a csv file
