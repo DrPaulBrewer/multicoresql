@@ -139,9 +139,20 @@ plus, optionally
 
 `-r` is used to identify a *reduce query* that is run on the data collected from the map query.  
 
+The map and reduce queries can be sql file names instead of statements. 
+
+Multiple sql statements are allowed, separated by `;`.  Multiple sql files are not allowed. 
+
 The reduce query is always written against the table `maptable`.  
 
-`maptable` is created by multicoresql as the collected results of running the map query on each shard.
+`maptable` is created by multicoresql as the collected results of running the map query on each shard. 
+
+Other options not shown:
+
+`-c number` specifies how many Linux processes to use for the map query.
+The default is to create a number of processes equal to the number of cpu cores.   
+
+`-v` verbose.  prints settings before executing query
 
 ###Map Only
 
