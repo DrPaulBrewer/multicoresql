@@ -167,7 +167,7 @@ From the sqlite3 documentation:
 
 `column`   Left-aligned columns.  (See .width)
 
-`html`     HTML <table> code
+`html`     HTML `<table>` code
 
 `insert`   SQL insert statements for TABLE
 
