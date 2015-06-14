@@ -1,4 +1,5 @@
 import os
+import sys
 
 def findFirst(l):
     return (v for v in l if 0==os.system('which '+v)).next()
@@ -16,4 +17,9 @@ programs = [
 env.Install(dir="/usr/local/lib", source=lib)
 env.Install(dir="/usr/local/bin", source=programs)
 installdirs = ['/usr/local/lib','/usr/local/bin']
-env.Alias('install', installdirs)
+
+def warnLdconfig(*params, **kw):
+    sys.stderr.write("** WARNING ** You probably need to run \n** 'sudo ldconfig' \n** to update the list of shared libaries to include this installation. \n**  Otherwise it may not run. \n** See multicoresql FAQ #2. \nhttps://github.com/DrPaulBrewer/multicoresql/blob/master/README.md#FAQ2 \n")
+
+env.Alias('install', installdirs, warnLdconfig)
+
