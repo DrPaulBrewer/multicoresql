@@ -159,17 +159,25 @@ of sqlite3 defined in the sqlite3 `.mode` command are supported:
 
 From the sqlite3 documentation: 
 
-> .mode MODE ?TABLE?    
-> Set output mode where MODE is one of:
->  ascii    Columns/rows delimited by 0x1F and 0x1E
->  csv      Comma-separated values
->  column   Left-aligned columns.  (See .width)
->  html     HTML <table> code
->  insert   SQL insert statements for TABLE
->  line     One value per line
->  list     Values delimited by .separator strings
->  tabs     Tab-separated values
->  tcl      TCL list elements
+`.mode MODE ?TABLE? `   Set output mode where MODE is one of:
+
+`ascii`    Columns/rows delimited by 0x1F and 0x1E
+
+`csv`      Comma-separated values
+
+`column`   Left-aligned columns.  (See .width)
+
+`html`     HTML <table> code
+
+`insert`   SQL insert statements for TABLE
+
+`line`     One value per line
+
+`list`     Values delimited by .separator strings
+
+`tabs`     Tab-separated values
+
+`tcl`      TCL list elements
 
 See https://www.sqlite.org/cli.html for a complete list of special commands.
 
