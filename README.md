@@ -203,12 +203,12 @@ where X is an alphanumeric character.
 Temporary directories are typically removed on successful completion of a query or command, but are left
 behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
     
-FAQ
+FAQ Frequently Asked Questions
 ===
 
-## Common Bugs, Issues, and Error Messages
+###FAQ 1. Why can't I run `sqls`, `sqlsfromcsv` or other executables from the build directory?
 
-###FAQ 1. Can not run `sqls`, `sqlsfromcsv` or other executables from build directory:
+Because by default the linker doesn't know to use the shared libraries that are in hte build directory.
     
 What you did: 
 
@@ -225,10 +225,14 @@ Issue:  The linker can not load the shared library libmulticoresql.so because it
 Fix:
 
     export LD_LIBRARY_PATH=/path/to/multicoresql/build
+    # dont type /path/to/... literally, instead substitute the full name of the build directory
+    # now run the executables, e.g. sqls, in the ./build subdirectory and they should work
     
 See also: http://stackoverflow.com/questions/4754633/linux-program-cant-find-shared-library-at-run-time
 
-###FAQ 2.  Can not run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` :
+###FAQ 2.  Why can't I run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` ?
+
+You didn't run `sudo ldconfig` to update the config file to include the new install in your system's libraries.
 
 Message:  Similar to FAQ #1  
 
@@ -236,7 +240,7 @@ Message:  Similar to FAQ #1
 
 Issue:  The linker can not load the shared library `/usr/local/lib/libmulticoresql.so` because it doesn't know that it is available for system wide use.  
 
-Fix:  Once the files are installed in `/usr/local` as `root`, refresh the ldconfig
+Fix:  Once the files are installed in `/usr/local`, then as `root` refresh the ldconfig
 
     sudo ldconfig
 
