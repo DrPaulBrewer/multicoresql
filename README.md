@@ -206,6 +206,7 @@ behind by failed queries and commands.  This is by design, and allows for post-f
 FAQ Frequently Asked Questions
 ===
 
+<a name="FAQ1">
 ###FAQ 1. Why can't I run `sqls`, `sqlsfromcsv` or other executables from the build directory?
 
 Because by default the linker doesn't know to use the shared libraries that are in the build directory, the current directory, etc.
@@ -233,6 +234,7 @@ It is expected that you only want to run tests or *temporarily* use the executab
     
 See also: http://stackoverflow.com/questions/4754633/linux-program-cant-find-shared-library-at-run-time
 
+<a name="FAQ2">
 ###FAQ 2.  Why can't I run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` ?
 
 You didn't run `sudo ldconfig` to update the config file to include the new install in your system's libraries.
