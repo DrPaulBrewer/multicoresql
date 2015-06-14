@@ -159,7 +159,7 @@ of sqlite3 defined in the sqlite3 `.mode` command are supported:
 
 See https://www.sqlite.org/cli.html for a complete list of special commands.
 
->.mode MODE ?TABLE?     Set output mode where MODE is one of:
+> .mode MODE ?TABLE?     Set output mode where MODE is one of:
 >                         ascii    Columns/rows delimited by 0x1F and 0x1E
 >                         csv      Comma-separated values
 >                         column   Left-aligned columns.  (See .width)
@@ -170,6 +170,7 @@ See https://www.sqlite.org/cli.html for a complete list of special commands.
 >                         tabs     Tab-separated values
 >                         tcl      TCL list elements
 
+
 Sqlite3 `.mode` commands would typically be given in the `-r` *reduce query*.    
 
 You may provide multiple sql commands by using ";" as a separator 
@@ -178,20 +179,19 @@ You may provide multiple sql commands by using ";" as a separator
 
 ###Environment Variables
 
-`MULTICORE_SQLITE3_BIN` specify the `/path/to/usr/local/bin/sqlite3` path to the sqlite3 command shell
-                        default is to search `PATH`
-                        Useful if you have multiple sqlite3 executables or need a special version.              
-                        
+`MULTICORE_SQLITE3_BIN` specify the `/path/to/usr/local/bin/sqlite3` path to the sqlite3 command shell.
+The default is to search `PATH`.   Useful if you have multiple sqlite3 executables or need a special version.              
+
 `MULTICORE_SQLITE3_EXTENSIONS` a space-separated list of libraries to be loaded by multicoresql 
-                        via the sqlite3 `.load` command
+via the sqlite3 `.load` command
 
 ###Temp Directories
 
-    multicoresql creates a temporary directories while running, in `/tmp/multicoresql-XXXXXX`
-    where X is an alphanumeric character.
+multicoresql creates a temporary directories while running, in `/tmp/multicoresql-XXXXXX`
+where X is an alphanumeric character.
     
-    Temporary directories are typically removed on successful completion of a query or command, but are left
-    behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
+Temporary directories are typically removed on successful completion of a query or command, but are left
+behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
     
     
 
