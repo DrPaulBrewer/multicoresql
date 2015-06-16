@@ -226,14 +226,18 @@ Running a query from "C" currently looks like this:
     # test db!=NULL
     struct mu_QUERY *Q = mu_create_query(mapsql_or_fname,
 	                                    NULL,
-			                            reducesql_or_fname);
-	char *result = mu_run_query(struct mu_DBCONF *db, struct mu_QUERY *Q);
+			                 reducesql_or_fname);
+	char *result = mu_run_query(db, Q);
     if (result) {
         printf("%s\n", result);
     } else {
         printf("Error: %s\n", mu_error_string());
         mu_error_clear();
+        # do not free mu_error_string
     }    
+    free(Q);
+    free(result);
+    free(db);
     
 `./src/multicoresql.h` is documented with `doxygen`-style comments documenting the public functions 
     
