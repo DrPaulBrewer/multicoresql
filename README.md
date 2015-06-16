@@ -214,6 +214,29 @@ where X is an alphanumeric character.
 Temporary directories are typically removed on successful completion of a query or command, but are left
 behind by failed queries and commands.  This is by design, and allows for post-failure inspection.
     
+C API Example
+===
+
+Warning:  The API is not yet stable. Functions exposed by libmulticoresql are subject to change.  
+
+Running a query from "C" currently looks like this:
+
+    # include "multicoresql.h"
+    struct mu_DBCONF *db = mu_opendb("/path/to/sqlite3/database/shards");
+    # test db!=NULL
+    struct mu_QUERY *Q = mu_create_query(mapsql_or_fname,
+	                                    NULL,
+			                            reducesql_or_fname);
+	char *result = mu_run_query(struct mu_DBCONF *db, struct mu_QUERY *Q);
+    if (result) {
+        printf("%s\n", result);
+    } else {
+        printf("Error: %s\n", mu_error_string());
+        mu_error_clear();
+    }    
+    
+`./src/multicoresql.h` is documented with `doxygen`-style comments documenting the public functions 
+    
 FAQ Frequently Asked Questions
 ===
 
