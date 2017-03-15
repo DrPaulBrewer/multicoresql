@@ -13,9 +13,9 @@ performance will be limited by disk bottlenecks.  The time required reading disk
 
 multicoresql does not at this time distribute tasks across multiple machines. 
 
-##License: [The MIT License](https://raw.githubusercontent.com/DrPaulBrewer/multicoresql/master/LICENSE.txt)
+## License: [The MIT License](https://raw.githubusercontent.com/DrPaulBrewer/multicoresql/master/LICENSE.txt)
 
-##Test Drive without Installation
+## Test Drive with Docker without Installation
 
 If you have the [`docker`](http://docker.com) container service running on a Linux host, you can test drive 
 multicoresql without installing it permanently.  multicoresql does not otherwise use or require docker.
@@ -38,7 +38,7 @@ and the map/reduce capability.  Among the tests are math queries that sum series
 For more control, run manually by appending `/bin/bash` to the `docker run` command.  Then, at the
 root prompt for the container, `cd /opt/github` and `./fetchBuildTest.sh` to run the build and test script.  
 
-##Installation
+## Installation
 
 multicoresql uses and requires as pre-requsities the [SQLite](http://www.sqlite.org) database engine and the [scons](http://www.scons.org) build system
 
@@ -56,7 +56,7 @@ Install script for bare Debian and related distros such as Ubuntu:
     # scons version of classic "make install"
     sudo scons install
     
-##Manifest
+## Manifest
 
 After running `sudo scons install` the following will be installed in `/usr/local`:
 
@@ -73,9 +73,9 @@ After running `sudo scons install` the following will be installed in `/usr/loca
 `/usr/local/bin/sqlsfromsqlite` -- from an existing sqlite3 database table with a shardid column,
                                 builds a directory containing sqlite3 database shards
     
-##Importing Data
+## Importing Data
 
-###from CSV
+### from CSV
 
     sqlsfromcsv
 
@@ -100,7 +100,7 @@ Running `sqlsfromcsv` without parameters provides this reminder message:
 
 Each data row from the csv file is sharded randomly to a shard using a random number generator to select the shard.
 
-###from existing SQLite Database
+### from existing SQLite Database
 
     sqlsfromsqlite 
     
@@ -121,9 +121,9 @@ shard databases are created and named from the distinct values of the `shardid` 
 Allowed characters in the `shardid` column are `[0-9][A-Z][a-z].-_` alphanumeric, dot, dash, and underscore; 
 except that  dot is illegal as the first character of a `shardid`.  
 
-##Running Queries
+## Running Queries
 
-###Map/Reduce
+### Map/Reduce
 
 Quick Example: Summing a column
 
@@ -154,7 +154,7 @@ The default is to create a number of processes equal to the number of cpu cores.
 
 `-v` verbose.  prints settings before executing query
 
-###Map Only
+### Map Only
 
 For a map query only the 
 
@@ -163,7 +163,7 @@ For a map query only the
 
 parameters are required.
 
-###Output formats
+### Output formats
 
 Queries are interpreted by the sqlite3 command line shell, and therefore all output formats
 of sqlite3 defined in the sqlite3 `.mode` command are supported:
@@ -196,9 +196,9 @@ Sqlite3 `.mode` commands would typically be given in the `-r` *reduce query*.
 
 You may provide multiple sql commands by using ";" as a separator 
 
-##Options
+## Options
 
-###Environment Variables
+### Environment Variables
 
 `MULTICORE_SQLITE3_BIN` specify the `/path/to/usr/local/bin/sqlite3` path to the sqlite3 command shell.
 The default is to search `PATH`.   Useful if you have multiple sqlite3 executables or need a special version.              
@@ -206,7 +206,7 @@ The default is to search `PATH`.   Useful if you have multiple sqlite3 executabl
 `MULTICORE_SQLITE3_EXTENSIONS` a space-separated list of libraries to be loaded by multicoresql 
 via the sqlite3 `.load` command
 
-###Temp Directories
+### Temp Directories
 
 multicoresql creates a temporary directories while running, in `/tmp/multicoresql-XXXXXX`
 where X is an alphanumeric character.
@@ -245,7 +245,8 @@ FAQ Frequently Asked Questions
 ===
 
 <a name="FAQ1">
-###FAQ 1. Why can't I run `sqls`, `sqlsfromcsv` or other executables from the build directory?
+
+### FAQ 1. Why can't I run `sqls`, `sqlsfromcsv` or other executables from the build directory?
 
 Because by default the linker doesn't know to use the shared libraries that are in the build directory, the current directory, etc.
     
@@ -273,7 +274,8 @@ It is expected that you only want to run tests or *temporarily* use the executab
 See also: http://stackoverflow.com/questions/4754633/linux-program-cant-find-shared-library-at-run-time
 
 <a name="FAQ2">
-###FAQ 2.  Why can't I run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` ?
+
+### FAQ 2.  Why can't I run `sqls`, `sqlsfromcsv` or other executables after `sudo scons install` ?
 
 You didn't run `sudo ldconfig` to update the config file to include the new install in your system's libraries.
 
@@ -290,7 +292,8 @@ Fix:  Once the files are installed in `/usr/local`, then as `root` refresh the l
 See also:  http://askubuntu.com/questions/631275/how-do-i-do-this-install-you-may-need-to-run-ldconfig
 
 <a name="FAQ3">
-###FAQ 3.  Why did I get a warning telling me to run `sudo ldconfig` ?
+
+### FAQ 3.  Why did I get a warning telling me to run `sudo ldconfig` ?
 
 This warning is **always** generated.  You haven't made an error, nor is there an error in the software.
 
