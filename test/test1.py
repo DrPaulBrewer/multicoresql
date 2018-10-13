@@ -9,7 +9,8 @@ if not re.search(r'/(test)$', os.getcwd()):
     exit()
 
 os.system("rm -rf ./mega")
-
+os.system("rm -rf ./megadata.csv");
+os.system("./numbers 1 1000000 > ./megadata.csv");
 os.putenv('LD_LIBRARY_PATH','../build')
 
 def runsqls(mybin, db, mapsql, reducesql):
