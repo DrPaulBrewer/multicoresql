@@ -42,9 +42,8 @@ int main(int argc, char **argv){
       {
       case 'c':
 	ncores = (int) strtol(optarg,NULL,10);
-	if (ncores<=0)
-	  break;
-	fprintf(stderr,"Option -c requires number, got %s \n", optarg);
+	if (ncores>0) break;
+	fprintf(stderr,"Option -c requires positive number, got %s \n", optarg);
 	return 1;
       case 'd':
 	dbname = optarg;
