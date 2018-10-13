@@ -1,15 +1,15 @@
-/* libmulticoreutils.c 
+/* libmulticoreutils.c
    Copyright 2015 Paul Brewer <drpaulbrewer@eaftc.com> Economic and Financial Technology Consulting LLC
    License:  MIT
    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
- documentation files (the "Software"), to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and 
+ documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
 to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO 
-THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
 OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
@@ -30,7 +30,7 @@ const char *mu_error_fclose =
   "A serious file i/o error occurred while trying to save and close a file.\nThe file may be corrupted.\nFile name: %s\n";
 
 const char *mu_error_string(){
-  return ((mu_error_cursor)? mu_error_buf: NULL); 
+  return ((mu_error_cursor)? mu_error_buf: NULL);
 }
 
 void mu_error_clear(){
@@ -57,19 +57,19 @@ void mu_error_clear(){
       return failval;					\
     }
 
-    
+
 #define MU_FCLOSE_W(fname, failval, f)		\
   if (fclose(f)) {				\
     MU_WARN(mu_error_fclose, fname);		\
     MU_WARN_IF_ERRNO();				\
     return failval;				\
-  } 
+  }
 
 #define MU_PRINTBUF(fmt, ...) \
   if (cursor<bufsize) \
     cursor+=snprintf(buf+cursor,bufsize-cursor,fmt,##__VA_ARGS__)
 
-static char * mu_cat(const char *s1, const char *s2){ 
+static char * mu_cat(const char *s1, const char *s2){
   char * s = malloc(snprintf(NULL, 0, "%s%s", s1, s2) + 1);
   if (NULL==s) {
     MU_WARN_OOM();
@@ -132,7 +132,7 @@ static int mu_remove_temp_dir(const char *dirname){
       }
       return 0;
     }
-  MU_WARN("mu_remove_temp_dir() received a request to delete a temporary directory, but the directory name was not in the right format.\n  The directory was NOT deleted.\n Directory name: %s\n", dirname);  
+  MU_WARN("mu_remove_temp_dir() received a request to delete a temporary directory, but the directory name was not in the right format.\n  The directory was NOT deleted.\n Directory name: %s\n", dirname);
   return -1;
 }
 
@@ -196,12 +196,12 @@ static int ok_mu_shard_name(const char *name){
   if ( (c==0) || (c=='.') )
     return 0;
   while(c){
-    if (! ( 
+    if (! (
 	   ((c>='0') && (c<='9')) ||
 	   ((c>='a') && (c<='z')) ||
-	   ((c>='A') && (c<='Z')) || 
-	   (c=='.') || 
-	   (c=='-') || 
+	   ((c>='A') && (c<='Z')) ||
+	   (c=='.') ||
+	   (c=='-') ||
 	   (c=='_')
 	    ))
       return 0;
@@ -216,12 +216,12 @@ char * mu_read_small_file(const char *fname){
 
   if (NULL==fname)
     return NULL;
-  
+
   if (stat(fname, &fstats)!=0)
     return NULL;
-  
+
   FILE *f = fopen(fname,"r");
-  
+
   if (NULL==f)
     return NULL;
 
@@ -235,7 +235,7 @@ char * mu_read_small_file(const char *fname){
   if (buflen>buflimit){
     return NULL;
   }
-  
+
   char *buf = malloc(buflen);
   if (NULL==buf){
     MU_WARN_OOM();
@@ -245,13 +245,13 @@ char * mu_read_small_file(const char *fname){
   size_t rcount = fread(buf, 1, fstats.st_size, f);
 
   buf[rcount]=0;
-  
-  if (rcount < ((size_t) fstats.st_size)){ 
+
+  if (rcount < ((size_t) fstats.st_size)){
     MU_WARN("mu_read_small_file %s, read %zu bytes, expected %lld bytes, returning NULL for safety \n", fname, rcount, (unsigned long long) fstats.st_size);
     free(buf);
-    return NULL;    
+    return NULL;
   }
-  
+
   return buf;
 
 }
@@ -264,8 +264,8 @@ static const char *mu_dup_sql_or_read_file(const char *sql_or_fname){
     return NULL;
   if ( (NULL==strchr(sql_or_fname,space)) &&
        (NULL==strchr(sql_or_fname,semicolon)) ){
-    /* if there is no space or ; the argument is not valid sql 
-     * but might be a filename 
+    /* if there is no space or ; the argument is not valid sql
+     * but might be a filename
      */
     result = mu_read_small_file(sql_or_fname);
     if (NULL==result){
@@ -336,7 +336,7 @@ static struct mu_SQLITE3_TASK * mu_define_task(const char *dirname, const char *
 static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
   const char *env_sqlite3_bin = getenv("MULTICORE_SQLITE3_BIN");
   const char *default_sqlite3_bin = "sqlite3";
-  const char *bin =  (env_sqlite3_bin)? env_sqlite3_bin: default_sqlite3_bin;    
+  const char *bin =  (env_sqlite3_bin)? env_sqlite3_bin: default_sqlite3_bin;
   char * const argv[] = { "sqlite3" , (char * const) task->dbname, NULL };
   pid_t pid = fork();
   if (pid>0) {
@@ -360,8 +360,8 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
 	  perror("Fatal: mu_start_task could not set error file with dup2 ");
 	}
 	exit(EXIT_FAILURE);
-      }      
-      
+      }
+
     }
     if (task->iname) {
       rd = open(task->iname, O_RDONLY);
@@ -369,7 +369,7 @@ static int mu_start_task(struct mu_SQLITE3_TASK *task, const char *errormsg){
 	if (errormsg){
 	  fputs(errormsg, stderr);
 	  perror(mu_cat("Fatal: mu_run could not open input file ",task->iname));
-	} 
+	}
 	exit(EXIT_FAILURE);
       }
       if (dup2(rd,0)<0){
@@ -470,7 +470,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   const char *shard_setup_fmt =
     "create temporary table shardids as select distinct shardid from %s where (shardid is not null) and (shardid!='');\n"
     "select count(*) from shardids;\n"
-    "select shardid from shardids order by shardid;\n";   
+    "select shardid from shardids order by shardid;\n";
   int i;
   int shardc;
   char **shardv;
@@ -503,7 +503,7 @@ int mu_create_shards_from_sqlite_table(const char *dbname, const char *tablename
   }
   char *tok0 = strtok(cmdout, "\n");
   if (tok0==NULL){
-    MU_WARN("%s\n", "An unusual error occurred in mu_create_shards_from_sqlite_table().  strtok() was unable to parse the data returned from examining the shardid column of the database table."); 
+    MU_WARN("%s\n", "An unusual error occurred in mu_create_shards_from_sqlite_table().  strtok() was unable to parse the data returned from examining the shardid column of the database table.");
     return -1;
   }
   shardc = (int) strtol(tok0, NULL, 10);
@@ -577,12 +577,12 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
     }
   }
 
-  
+
   const char *createsql = mu_dup_sql_or_read_file(schema);
 
   const char *no_create_error =
     "mu_create_shards_from_csv():  Someone (maybe you) omitted the 'create table' statement needed to create the tables from the csv files.  No further processing is possible.  No shard databases were created.";
-  
+
   if (NULL==createsql){
     MU_WARN("%s\n", no_create_error);
     return -1;
@@ -596,7 +596,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
   }
 
   srand(mu_get_random_seed());
-  
+
   const char *tmpdir = mu_create_temp_dir();
   if (NULL==tmpdir)
     return -1;
@@ -655,7 +655,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
   FILE *cmdf = mu_fopen(createdb_task->iname, "w");
   if (NULL==cmdf)
     return -1;
-  const char *cmdfmt = 
+  const char *cmdfmt =
     ".open %s/%.3d\n"
     "%s\n"
     ".import %s/%.3d %s\n";
@@ -677,7 +677,7 @@ int mu_create_shards_from_csv(const char *csvname, int skip, const char *schema,
   }
 
   free((void *) createsql);
-  
+
   MU_FCLOSE_W(createdb_task->iname, -1, cmdf);
   if (mu_start_task(createdb_task, "Fatal Error detected by mu_create_shards_from_csv() could not run sqlite3 to create shard databases.  No shard databases were created.  \n"))
     return -1;
@@ -740,7 +740,7 @@ struct mu_QUERY * mu_create_query(const char *mapsql_or_fname,
 
   const char *mu_error_omit_mapsql =
     "Error:  Someone (maybe you) omitted the 'mapsql' sql statements to be executed on each of the database shards. \nNo further processing is possible. \nThe query will not run.";
-  
+
   const char *mu_error_badsql =
     "Error:  Could not read the sqlite statements or commands. \nThe query will not run.";
 
@@ -750,7 +750,7 @@ struct mu_QUERY * mu_create_query(const char *mapsql_or_fname,
     MU_WARN("%s\n", mu_error_omit_mapsql);
     return NULL;
   }
-  
+
   const char * mapsql = mu_dup_sql_or_read_file(mapsql_or_fname);
 
   if (NULL==mapsql){
@@ -759,7 +759,7 @@ struct mu_QUERY * mu_create_query(const char *mapsql_or_fname,
   }
 
   const char * createtablesql = NULL;
-  
+
   if (createtablesql_or_fname){
     createtablesql = mu_dup_sql_or_read_file(createtablesql_or_fname);
     if (NULL == createtablesql){
@@ -781,7 +781,7 @@ struct mu_QUERY * mu_create_query(const char *mapsql_or_fname,
       return NULL;
     }
   }
-  
+
   struct mu_QUERY *q = malloc(sizeof(muquery));
   if (NULL==q){
     MU_WARN_OOM();
@@ -799,7 +799,7 @@ struct mu_QUERY * mu_create_query(const char *mapsql_or_fname,
   q->createtablesql = createtablesql;
 
   return q;
-  
+
 }
 
 const char *mu_error_null_dbconf =
@@ -807,7 +807,7 @@ const char *mu_error_null_dbconf =
 
 const char *mu_error_null_query =
   "Error: Did not receive a query to execute.\n";
-  
+
 
 
 struct mu_DBCONF * mu_opendb(const char *dbdir){
@@ -866,12 +866,18 @@ static int is_mu_select(const char *sqlstr){
   /* If the string is blank or all spaces/tabs the null-terminator will end this while loop */
   while ( (space==sqlstr[i]) || (tab==sqlstr[i]) )
     ++i;
-  return (('s'==sqlstr[i]) || ('S'==sqlstr[i]));    
+  return (('s'==sqlstr[i]) || ('S'==sqlstr[i]));
 }
 
 static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, const char *coredbname, int shardc, const char **shardv, const char *mapsql){
 
   int i;
+
+  if (NULL==conf) MU_WARN("%s\n","mu_makeQueryCoreFile detected conf==NULL");
+  if (NULL==fname) MU_WARN("%s\n","mu_makeQueryCoreFile detected fname==NULL");
+  if (0==shardc) MU_WARN("%s\n", "mu_makeQueryCoreFile detected shardc==0");
+  if (NULL==shardv) MU_WARN("%s\n","mu_makeQueryCoreFile detected shardv==NULL");
+  if (NULL==mapsql) MU_WARN("%s\n","mu_makeQueryCoreFile detected mapsql==NULL");
 
   if ( (conf==NULL) || (fname==NULL) || (shardc==0) || (shardv==NULL) || (mapsql==NULL) || strlen(mapsql)==0 ){
     MU_WARN("%s\n", "mu_makeQueryCoreFile detected one or more invalid or NULL required parameters");
@@ -886,7 +892,7 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
     return -1;
   }
 
-  
+
   int is_select = is_mu_select(mapsql);
 
   const char *exts = mu_sqlite3_extensions();
@@ -898,11 +904,11 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
       if (exts)
 	MU_PRINTBUF("%s\n", exts);
       if (is_select){
-	MU_PRINTBUF("attach database '%s' as 'resultdb';\n", coredbname); 
+	MU_PRINTBUF("attach database '%s' as 'resultdb';\n", coredbname);
 	if (i==0){
 	  MU_PRINTBUF("create table resultdb.%s as %s\n",
 		  conf->otablename,
-		  mapsql);	
+		  mapsql);
 	} else {
 	  MU_PRINTBUF("insert into resultdb.%s %s\n",
 		  conf->otablename,
@@ -920,7 +926,7 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
     MU_WARN("%s\n", "Oops! A buffer overflow was prevented while constructing the command files derived from the map query.  Unfortunately that buffer ran out of space.  The query was not run.");
     return -1;
   }
-  
+
   FILE * qcfile = mu_fopen(fname,"w");
   if (NULL==qcfile){
     free(buf);
@@ -933,7 +939,7 @@ static int mu_makeQueryCoreFile(struct mu_DBCONF * conf, const char *fname, cons
     MU_WARN_IF_ERRNO();
     return -1;
   }
-  MU_FCLOSE_W(fname, -1, qcfile);  
+  MU_FCLOSE_W(fname, -1, qcfile);
   return 0;
 }
 
@@ -957,14 +963,14 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     MU_WARN("%s\n", mu_error_null_query);
     return NULL;
   }
-  
+
   const char *reducesql = q->reducesql;
   const char *createtablesql = q->createtablesql;
 
   const char *tmpdir = mu_create_temp_dir();
   if (NULL==tmpdir)
     return NULL;
-  
+
   int icore;
 
   struct mu_SQLITE3_TASK *mapsql_task[conf->ncores];
@@ -974,16 +980,16 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     if (NULL==mapsql_task[icore])
       return NULL;
   }
-  
+
   struct mu_SQLITE3_TASK *reducesql_task =
     mu_define_task(tmpdir,mapsql_task[0]->dbname,"reducesql",0);
   if (NULL==reducesql_task)
     return NULL;
-  
+
   FILE *reducef = NULL;
   const char * rname = reducesql_task->iname;
 
-  size_t cursor = 0; // for reduce 
+  size_t cursor = 0; // for reduce
   size_t bufsize = (reducesql)? ((1024*conf->ncores)+strlen(reducesql)) :0;
   char *buf = NULL;
 
@@ -998,8 +1004,8 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     if (reducesql) free(buf);					\
     free((void *) tmpdir);					\
   } while(0)							\
-    
-  
+
+
   if (reducesql){
     buf = malloc(bufsize);
     if (NULL==buf){
@@ -1011,13 +1017,13 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     if (ext)
       MU_PRINTBUF("%s\n", ext);
   }
-  
+
   const size_t coredbnamesize = 255;
-  
+
   const char *errormsg_on_start = "Fatal error detected by mu_query() attempting to start sqlite3 ";
   const char *errormsg_on_finish_map = "Fatal error detected by mu_query() in map task";
-  const char *errormsg_on_finish_reduce = "Fatal error detected by mu_query() in reduce task"; 
-  
+  const char *errormsg_on_finish_reduce = "Fatal error detected by mu_query() in reduce task";
+
   for(icore=0;icore<(conf->ncores);++icore){
     if ((reducesql) && (icore>0)){
       MU_PRINTBUF("attach database '%s' as 'coredb%.3d';\n",
@@ -1031,7 +1037,7 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
     }
     int shardc = mu_getcoreshardc(icore, conf->ncores, conf->shardc);
     const char **shardv = mu_getcoreshardv(icore, conf->ncores, conf->shardc, conf->shardv);
-    
+
     if (NULL==shardv){
       MU_FREE_Q();
       return NULL;
@@ -1052,9 +1058,9 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
       return NULL;
     }
   }
-  
+
   char *result = NULL;
-  
+
   if (reducesql){
     int reducer_status=0;
     reducef = mu_fopen(rname, "w");
@@ -1101,5 +1107,3 @@ char * mu_run_query(struct mu_DBCONF *conf, struct mu_QUERY *q)
   MU_FREE_Q();
   return result;
 }
-
-
