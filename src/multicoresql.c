@@ -849,7 +849,10 @@ struct mu_DBCONF * mu_opendb(const char *dbdir){
   if ((c->shardc>1) &&
       (c->shardv[0]) &&
       (NULL==c->shardv[c->shardc])
-      ) c->isopen=1;
+      ){
+        c->isopen=1;
+        if ((c->ncores)>(c->shardc)) c->ncores = c->shardc;  // can use at most shardc cores -- pragmatic fix for issue #2
+  }
   free(glob);
   if (c->isopen==0){
     free(c);
