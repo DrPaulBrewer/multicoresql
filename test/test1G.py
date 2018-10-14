@@ -82,8 +82,8 @@ def suite(mybin,db):
     test(mybin,db,m4,r4,e4,t4)
     
 
-suite("../build/sqls", "/data/gig")
-suite("../build/3sqls", "/data/gig")
+suite("../build/sqls", "./giga")
+suite("../build/3sqls", "./giga")
  
 os.system("rm -rf ./giga")
 os.system("rm -rf ./gigadata.csv");
