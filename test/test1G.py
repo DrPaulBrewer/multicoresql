@@ -3,7 +3,18 @@ import os
 import subprocess
 import math
 import time
+import re
 
+if not re.search(r'/(test)$', os.getcwd()):
+    print "Please cd to the test directory before running the tests."
+    exit()
+
+    
+print "test1G.py -- These tests require about 40G free disk space"
+os.system("rm -rf ./giga")
+os.system("rm -rf ./gigadata.csv");
+print "Building billion number gigadata.csv file on single core.  This may take a few minutes."
+os.system("./numbers 1 1000000000 > ./gigadata.csv");
 os.putenv('LD_LIBRARY_PATH','../build')
 
 def runsqls(mybin, db, mapsql, reducesql):
@@ -29,7 +40,14 @@ def test(mybin, db, mapsql, reducesql, expected, tol):
     print " "
     print "-------------------------------------------------"
     print " "
-    
+
+setupsqls = "../build/sqlsfromcsv gigadata.csv 0 gigadata.sql giga ./giga 100"
+print "setting up ./giga test databases with :"
+print setupsqls
+print "Get a cup of coffee.  This may take a while!"
+if os.system(setupsqls):
+    print "sqlsfromcsv failed! failed to setup ./test/giga database directory. "
+    exit()
 
 
 def suite(mybin,db):
@@ -66,6 +84,8 @@ def suite(mybin,db):
 
 suite("../build/sqls", "/data/gig")
 suite("../build/3sqls", "/data/gig")
-
+ 
+os.system("rm -rf ./giga")
+os.system("rm -rf ./gigadata.csv");
 
 
